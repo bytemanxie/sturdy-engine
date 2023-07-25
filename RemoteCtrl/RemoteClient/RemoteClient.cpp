@@ -34,7 +34,7 @@ CRemoteClientApp::CRemoteClientApp()
 // The one and only CRemoteClientApp object
 
 CRemoteClientApp theApp;
-
+//切换分支
 
 // CRemoteClientApp initialization
 
