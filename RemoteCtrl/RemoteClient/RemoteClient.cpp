@@ -50,7 +50,7 @@ BOOL CRemoteClientApp::InitInstance()
 	InitCtrls.dwICC = ICC_WIN95_CLASSES;
 	InitCommonControlsEx(&InitCtrls);
 
-	CWinApp::InitInstance();
+	CWinApp::InitInstance();  
 
 
 	AfxEnableControlContainer();
