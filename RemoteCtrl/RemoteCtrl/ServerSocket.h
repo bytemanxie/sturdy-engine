@@ -76,13 +76,26 @@ public:
 		}
 		return *this;
 	}
-
+	int Size() {//包数据的大小
+		return nLength + 6;
+	}
+	const char* Data() {
+		strOut.resize(nLength + 6);
+		BYTE* pData = (BYTE*)strOut.c_str();
+		*(WORD*)pData = sHead; pData += 2;
+		*(DWORD*)(pData) = nLength; pData += 4;
+		*(WORD*)pData = sCmd; pData += 2;
+		memcpy(pData, strData.c_str(), strData.size()); pData += strData.size();
+		*(WORD*)pData = sSum;
+		return strOut.c_str();
+	}
 public:
 	WORD sHead;//固定位 0xFEFF
 	DWORD nLength;//包长度（从控制命令开始，到和校验结束）
 	WORD sCmd;//控制命令
 	std::string strData;//包数据
 	WORD sSum;//和校验
+	std::string strOut;//整个包的数据
 };
 
 class CServerSocket
@@ -158,6 +171,13 @@ public:
 		if (m_client == -1)return false;
 		return send(m_client, pData, nSize, 0) > 0;
 	}
+
+	bool Send(CPacket& pack) {
+		if (m_client == -1)return false;
+		//Dump((BYTE*)pack.Data(), pack.Size());
+		return send(m_client, pack.Data(), pack.Size(), 0) > 0;
+	}
+
 
 private:
 	SOCKET m_sock, m_client;
