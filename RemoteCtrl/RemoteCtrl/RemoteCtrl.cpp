@@ -64,67 +64,89 @@ typedef struct file_info {
 	char szFileName[256];//文件名
 }FILEINFO, * PFILEINFO;
 
-int MakeDirectoryInfo(std::list<CPacket>& lstPacket, CPacket& inPacket) {
-	std::string strPath = inPacket.strData;
+int MakeDirectoryInfo() {
+	std::string strPath;
 	//std::list<FILEINFO> lstFileInfos;
-	if (_chdir(strPath.c_str()) != 0) {
+	if (CServerSocket::getInstance()->GetFilePath(strPath) == false)
+	{
+		OutputDebugString(_T("当前的命令，不是获取文件列表，命令解析错误！！"));
+		return -1;
+	}
+	if (_chdir(strPath.c_str()) != 0)
+	{
 		FILEINFO finfo;
+		finfo.IsInvalid = TRUE;
+		finfo.IsDirectory = TRUE;
 		finfo.HasNext = FALSE;
-		lstPacket.push_back(CPacket(2, (BYTE*)&finfo, sizeof(finfo)));
-		OutputDebugString(_T("没有权限访问目录！！"));
+		memcpy(finfo.szFileName, strPath.c_str(), strPath.size());
+		//lstFileInfos.push_back(finfo);
+		CPacket pack(2, (BYTE*) & finfo, sizeof finfo);
+		CServerSocket::getInstance()->Send(pack);
+		OutputDebugString(_T("没有权限，访问目录！！"));
+
 		return -2;
 	}
 	_finddata_t fdata;
 	int hfind = 0;
-	if ((hfind = _findfirst("*", &fdata)) == -1) {
+	if ((hfind = _findfirst("*", &fdata)) == -1)
+	{
 		OutputDebugString(_T("没有找到任何文件！！"));
-		FILEINFO finfo;
-		finfo.HasNext = FALSE;
-		lstPacket.push_back(CPacket(2, (BYTE*)&finfo, sizeof(finfo)));
 		return -3;
 	}
-	int count = 0;
 	do {
 		FILEINFO finfo;
 		finfo.IsDirectory = (fdata.attrib & _A_SUBDIR) != 0;
 		memcpy(finfo.szFileName, fdata.name, strlen(fdata.name));
-		TRACE("%s\r\n", finfo.szFileName);
-		lstPacket.push_back(CPacket(2, (BYTE*)&finfo, sizeof(finfo)));
-		count++;
+		//lstFileInfos.push_back(finfo);
+		CPacket pack(2, (BYTE*)&finfo, sizeof finfo);
+		CServerSocket::getInstance()->Send(pack);
 	} while (!_findnext(hfind, &fdata));
-	TRACE("server: count = %d\r\n", count);
-	//发送信息到控制端
 	FILEINFO finfo;
 	finfo.HasNext = FALSE;
-	lstPacket.push_back(CPacket(2, (BYTE*)&finfo, sizeof(finfo)));
+	CPacket pack(2, (BYTE*)&finfo, sizeof finfo);
+	CServerSocket::getInstance()->Send(pack);
 	return 0;
 }
 
-int DownloadFile(std::list<CPacket>& lstPacket, CPacket& inPacket) {
-	std::string strPath = inPacket.strData;
+int RunFile()
+{
+	std::string strPath;
+	CServerSocket::getInstance()->GetFilePath(strPath);
+	ShellExecuteA(NULL, NULL, strPath.c_str(), NULL, NULL, SW_SHOWNORMAL);//打开文件
+	CPacket pack(3, NULL, 0);
+	CServerSocket::getInstance()->Send(pack);
+	return 0;
+}
+
+int DownloadFile() {
+	std::string strPath;
+	CServerSocket::getInstance()->GetFilePath(strPath);
 	long long data = 0;
 	FILE* pFile = NULL;
 	errno_t err = fopen_s(&pFile, strPath.c_str(), "rb");
-	if (err != 0) {
-		lstPacket.push_back(CPacket(4, (BYTE*)&data, 8));
+	if (err != 0)
+	{
+		CPacket pack(4, (BYTE*)&data, 8);
+		CServerSocket::getInstance()->Send(pack);
 		return -1;
 	}
-	if (pFile != NULL) {
-		fseek(pFile, 0, SEEK_END);
-		data = _ftelli64(pFile);
-		lstPacket.push_back(CPacket(4, (BYTE*)&data, 8));
-		fseek(pFile, 0, SEEK_SET);
-		char buffer[1024] = "";
-		size_t rlen = 0;
-		do {
-			rlen = fread(buffer, 1, 1024, pFile);
-			lstPacket.push_back(CPacket(4, (BYTE*)buffer, rlen));
-		} while (rlen >= 1024);
-		fclose(pFile);
-	}
-	else {
-		lstPacket.push_back(CPacket(4, (BYTE*)&data, 8));
-	}
+
+	fseek(pFile, 0, SEEK_END);
+	data = _ftelli64(pFile);
+	CPacket head(4, (BYTE*)&data, 8);
+	CServerSocket::getInstance()->Send(head);//发送一个文件长度
+	fseek(pFile, 0, SEEK_SET);
+
+	char buffer[1024] = "";
+	size_t rlen = 0;
+	do {
+		rlen = fread(buffer, 1, 1024, pFile);
+		CPacket pack(4, (BYTE*)buffer, rlen);
+		CServerSocket::getInstance()->Send(pack);//读1K发1K
+	} while (rlen >= 1024);//不足1024说明读到文件尾
+	CPacket pack(4, NULL, 0);
+	CServerSocket::getInstance()->Send(pack);
+	fclose(pFile);
 	return 0;
 }
 
@@ -176,6 +198,12 @@ int main()
                 break;
 			case 2:
 				MakeDirectoryInfo();
+				break;
+			case3:
+				RunFile();
+				break;
+			case4:
+				DownloadFile();
 				break;
             }
             

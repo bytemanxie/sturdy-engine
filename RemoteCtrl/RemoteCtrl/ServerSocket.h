@@ -7,7 +7,7 @@ public:
 	CPacket() :sHead(0), nLength(0), sCmd(0), sSum(0) {}
 	CPacket(WORD nCmd, const BYTE* pData, size_t nSize) {
 		sHead = 0xFEFF;
-		nLength = nSize + 4;
+		nLength = nSize + 4;//加上控制命令和校验长度
 		sCmd = nCmd;
 		if (nSize > 0) {
 			strData.resize(nSize);
@@ -180,7 +180,7 @@ public:
 
 	bool GetFilePath(std::string& strPath)
 	{
-		if (m_packet.sCmd == 2)
+		if ((m_packet.sCmd >= 2) && (m_packet.sCmd <= 4))
 		{
 			strPath = m_packet.strData;
 			return true;
