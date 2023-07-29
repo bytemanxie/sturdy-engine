@@ -47,6 +47,87 @@ int MakeDriverInfo() {//1==>A 2==>B 3==>C ... 26==>Z
 	return 0;
 }
 
+#include <stdio.h>
+#include <io.h>
+#include <list>
+
+typedef struct file_info {
+	file_info() {
+		IsInvalid = FALSE;
+		IsDirectory = -1;
+		HasNext = TRUE;
+		memset(szFileName, 0, sizeof(szFileName));
+	}
+	BOOL IsInvalid;//是否有效
+	BOOL IsDirectory;//是否为目录 0 否 1 是
+	BOOL HasNext;//是否还有后续 0 没有 1 有
+	char szFileName[256];//文件名
+}FILEINFO, * PFILEINFO;
+
+int MakeDirectoryInfo(std::list<CPacket>& lstPacket, CPacket& inPacket) {
+	std::string strPath = inPacket.strData;
+	//std::list<FILEINFO> lstFileInfos;
+	if (_chdir(strPath.c_str()) != 0) {
+		FILEINFO finfo;
+		finfo.HasNext = FALSE;
+		lstPacket.push_back(CPacket(2, (BYTE*)&finfo, sizeof(finfo)));
+		OutputDebugString(_T("没有权限访问目录！！"));
+		return -2;
+	}
+	_finddata_t fdata;
+	int hfind = 0;
+	if ((hfind = _findfirst("*", &fdata)) == -1) {
+		OutputDebugString(_T("没有找到任何文件！！"));
+		FILEINFO finfo;
+		finfo.HasNext = FALSE;
+		lstPacket.push_back(CPacket(2, (BYTE*)&finfo, sizeof(finfo)));
+		return -3;
+	}
+	int count = 0;
+	do {
+		FILEINFO finfo;
+		finfo.IsDirectory = (fdata.attrib & _A_SUBDIR) != 0;
+		memcpy(finfo.szFileName, fdata.name, strlen(fdata.name));
+		TRACE("%s\r\n", finfo.szFileName);
+		lstPacket.push_back(CPacket(2, (BYTE*)&finfo, sizeof(finfo)));
+		count++;
+	} while (!_findnext(hfind, &fdata));
+	TRACE("server: count = %d\r\n", count);
+	//发送信息到控制端
+	FILEINFO finfo;
+	finfo.HasNext = FALSE;
+	lstPacket.push_back(CPacket(2, (BYTE*)&finfo, sizeof(finfo)));
+	return 0;
+}
+
+int DownloadFile(std::list<CPacket>& lstPacket, CPacket& inPacket) {
+	std::string strPath = inPacket.strData;
+	long long data = 0;
+	FILE* pFile = NULL;
+	errno_t err = fopen_s(&pFile, strPath.c_str(), "rb");
+	if (err != 0) {
+		lstPacket.push_back(CPacket(4, (BYTE*)&data, 8));
+		return -1;
+	}
+	if (pFile != NULL) {
+		fseek(pFile, 0, SEEK_END);
+		data = _ftelli64(pFile);
+		lstPacket.push_back(CPacket(4, (BYTE*)&data, 8));
+		fseek(pFile, 0, SEEK_SET);
+		char buffer[1024] = "";
+		size_t rlen = 0;
+		do {
+			rlen = fread(buffer, 1, 1024, pFile);
+			lstPacket.push_back(CPacket(4, (BYTE*)buffer, rlen));
+		} while (rlen >= 1024);
+		fclose(pFile);
+	}
+	else {
+		lstPacket.push_back(CPacket(4, (BYTE*)&data, 8));
+	}
+	return 0;
+}
+
 int main()
 {
     int nRetCode = 0;
@@ -93,6 +174,9 @@ int main()
             case 1:
                 MakeDriverInfo();
                 break;
+			case 2:
+				MakeDirectoryInfo();
+				break;
             }
             
         }
