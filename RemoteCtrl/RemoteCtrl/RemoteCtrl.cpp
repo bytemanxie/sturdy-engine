@@ -6,6 +6,7 @@
 #include "RemoteCtrl.h"
 #include "ServerSocket.h"
 #include <direct.h>
+#include <atlimage.h>
 
 #ifdef _DEBUG
 #define new DEBUG_NEW
@@ -251,6 +252,48 @@ int MouseEvent()
 	return 0;
 }
 
+int SendScreen()
+{
+	CImage screen;//GDI
+	HDC hScreen = ::GetDC(NULL);
+	int nBitPerPixel = GetDeviceCaps(hScreen, BITSPIXEL);
+	int nwidth = GetDeviceCaps(hScreen, HORZRES);
+	int nHeight = GetDeviceCaps(hScreen, VERTRES);
+	screen.Create(nwidth, nHeight, nBitPerPixel);
+	BitBlt(screen.GetDC(), 0, 0, 1920, 1020, hScreen, 0, 0, SRCCOPY);
+	ReleaseDC(NULL, hScreen);
+	HGLOBAL hMem = GlobalAlloc(GMEM_MOVEABLE, 0);
+	if (hMem == NULL) return -1;
+
+	IStream* pStream = NULL;
+	HRESULT ret = CreateStreamOnHGlobal(hMem, TRUE, &pStream);
+	if (ret == S_OK)
+	{
+		screen.Save(pStream, Gdiplus::ImageFormatPNG);
+		LARGE_INTEGER bg = { 0 };
+		pStream->Seek(bg, STREAM_SEEK_SET, NULL);//流指针设置为流头
+		PBYTE pData = (PBYTE) GlobalLock(hMem);
+		SIZE_T nSize = GlobalSize(hMem);
+		
+		CPacket pack(6, NULL, nSize);
+		CServerSocket::getInstance()->Send(pack);
+		GlobalUnlock(hMem);
+	}
+
+	//DWORD tick = GetTickCount();
+
+	//screen.Save(_T("test2020.png"), Gdiplus::ImageFormatPNG);
+	/*TRACE("png %d\r\n", GetTickCount() - tick);
+
+	tick = GetTickCount();
+	screen.Save(_T("test2020.jpg"), Gdiplus::ImageFormatJPEG);
+	TRACE("jpg %d\r\n", GetTickCount() - tick);*/
+	pStream->Release();
+	GlobalFree(hMem);
+	screen.ReleaseDC();
+	return 0;
+}
+
 int main()
 {
     int nRetCode = 0;
@@ -291,7 +334,7 @@ int main()
             //    int ret = pserver->DealCommand();
             //    //TODO
             //}
-            int ncmd = 1;
+            int ncmd = 6;
             switch (ncmd)
             {
             case 1:
@@ -308,6 +351,9 @@ int main()
 				break;
 			case 5:
 				MouseEvent();
+				break;
+			case 6:
+				SendScreen();
 				break;
             }
             
