@@ -275,7 +275,7 @@ int SendScreen()
 		PBYTE pData = (PBYTE) GlobalLock(hMem);
 		SIZE_T nSize = GlobalSize(hMem);
 		
-		CPacket pack(6, NULL, nSize);
+		CPacket pack(6, pData, nSize);
 		CServerSocket::getInstance()->Send(pack);
 		GlobalUnlock(hMem);
 	}
@@ -294,14 +294,76 @@ int SendScreen()
 	return 0;
 }
 
+#include "LockInfoDialog.h"
+CLockInfoDialog dlg;
+unsigned int threadid;
+
+unsigned int _stdcall threadLockDlg(void*)
+{
+	TRACE("%s %d %d\r\n", __FILE__,__LINE__, GetCurrentThreadId());
+	dlg.Create(IDD_DIALOG_INFO, NULL);
+	dlg.ShowWindow(SW_SHOW);
+	//遮蔽后台窗口
+	CRect rect;
+	rect.left = 0;
+	rect.top = 0;
+	rect.right = GetSystemMetrics(SM_CXFULLSCREEN);
+	rect.bottom = GetSystemMetrics(SM_CXFULLSCREEN);
+	rect.bottom *= 1.03;
+	dlg.MoveWindow(rect);
+	//窗口置顶
+	dlg.SetWindowPos(&dlg.wndTopMost, 0, 0, 0, 0, SWP_NOSIZE | SWP_NOMOVE);
+	//限制鼠标功能
+	ShowCursor(false);
+	//隐藏任务栏
+	::ShowWindow(::FindWindow(_T("Shell_TrayWind"), NULL), SW_HIDE);
+	/*CRect rect;
+	dlg.GetWindowRect(rect);*/
+	//限制鼠标范围
+	rect.right = rect.left + 1;
+	rect.bottom = rect.top + 1;
+	ClipCursor(rect);
+	MSG msg;
+	while (GetMessage(&msg, NULL, 0, 0))
+	{
+		TranslateMessage(&msg);
+		DispatchMessage(&msg);
+		if (msg.message == WM_KEYDOWN)
+		{
+			TRACE("msg:%08x wparam:%08x lparam:%08x\r\n", msg.message, msg.wParam, msg.lParam);
+			if (msg.wParam == 0x41 && msg.lParam == 0x1e0001)//按ESC退出
+			{
+				break;
+			}
+		}
+	}
+	
+	ShowCursor(false);
+	::ShowWindow(::FindWindow(_T("Shell_TrayWind"), NULL), SW_SHOW);
+	dlg.DestroyWindow();
+	_endthreadex(0);
+	return 0;
+}
+
 int LockMachine()
 {
-
+	if ((dlg.m_hWnd == NULL) || (dlg.m_hWnd == INVALID_HANDLE_VALUE))
+	{
+		//_beginthread(threadLockDlg, 0, NULL);
+		_beginthreadex(NULL, 0, threadLockDlg, NULL, 0, &threadid);
+	}
+	CPacket pack(7, NULL, 0);
+	CServerSocket::getInstance()->Send(pack);
 	return 0;
 }
 
 int UnlockMachine()
 {
+	//dlg.SendMessage(WM_KEYDOWN, 0x41, 0x1e0001);
+	//::SendMessage(dlg, WM_KEYDOWN, 0x41, 0x1e0001);
+	PostThreadMessage(threadid, WM_KEYDOWN, 0x41, 0x1e0001);
+	CPacket pack(7, NULL, 0);
+	CServerSocket::getInstance()->Send(pack);
 	return 0;
 }
 
@@ -345,7 +407,9 @@ int main()
             //    int ret = pserver->DealCommand();
             //    //TODO
             //}
-            int ncmd = 6;
+			
+
+            int ncmd = 7;
             switch (ncmd)
             {
             case 1:
@@ -368,10 +432,16 @@ int main()
 				break;
 			case 7:
 				LockMachine();
+				/*Sleep(50);
+				LockMachine();*/
+				break;
 			case 8:
 				UnlockMachine();
+				break;
             }
-            
+			Sleep(5000);
+			UnlockMachine();
+			while (dlg.m_hWnd != NULL && dlg.m_hWnd != INVALID_HANDLE_VALUE) Sleep(100); //等dlg析构
         }
     }
     else
