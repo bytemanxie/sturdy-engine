@@ -337,7 +337,6 @@ unsigned int _stdcall threadLockDlg(void*)
 			}
 		}
 	}
-	
 	ShowCursor(false);
 	::ShowWindow(::FindWindow(_T("Shell_TrayWind"), NULL), SW_SHOW);
 	dlg.DestroyWindow();
