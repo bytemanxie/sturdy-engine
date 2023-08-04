@@ -144,6 +144,7 @@ public:
 		sockaddr_in client_addr;
 		int cli_sz = sizeof client_addr;
 		m_client = accept(m_sock, (sockaddr*)&client_addr, &cli_sz);
+		TRACE("m_client = %d\r\n", m_client);
 		if (m_client == -1) return false;
 		return true;
 	}
@@ -211,6 +212,15 @@ public:
 		return 0;
 	}
 
+	CPacket& GetPacket()
+	{
+		return m_packet;
+	}
+	void CloseClient()
+	{
+		closesocket(m_client);
+		m_client = INVALID_SOCKET;
+	}
 private:
 	SOCKET m_sock, m_client;
 	CPacket m_packet;

@@ -6,6 +6,7 @@
 #include "framework.h"
 #include "RemoteClient.h"
 #include "RemoteClientDlg.h"
+#include "ClientSocket.h"
 #include "afxdialogex.h"
 
 #ifdef _DEBUG
@@ -65,6 +66,7 @@ BEGIN_MESSAGE_MAP(CRemoteClientDlg, CDialogEx)
 	ON_WM_SYSCOMMAND()
 	ON_WM_PAINT()
 	ON_WM_QUERYDRAGICON()
+	ON_BN_CLICKED(IDC_BTN_TEST, &CRemoteClientDlg::OnBnClickedBtnTest)
 END_MESSAGE_MAP()
 
 
@@ -153,3 +155,20 @@ HCURSOR CRemoteClientDlg::OnQueryDragIcon()
 	return static_cast<HCURSOR>(m_hIcon);
 }
 
+
+
+void CRemoteClientDlg::OnBnClickedBtnTest()
+{
+	CClientSocket* pClient = CClientSocket::getInstance();
+	bool ret = pClient->InitSocket("127.0.0.1");
+	if (!ret)
+	{
+		AfxMessageBox("网络初始化失败！");
+
+	}
+	CPacket pack(1981, NULL, 0);
+
+	pClient->Send(pack);
+	pClient->DealCommand();
+	pClient->GetPacket();
+}

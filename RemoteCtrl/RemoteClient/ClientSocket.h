@@ -114,21 +114,7 @@ typedef struct MouseEvent {
 	POINT ptXY;//坐标
 }MOUSEEV, * PMOUSEEV;
 
-std::string GetErrorInfo(int wsaErrCode)
-{
-	std::string ret;
-	LPVOID lpMsgBuf = NULL;
-	FormatMessage(
-		FORMAT_MESSAGE_FROM_SYSTEM | FORMAT_MESSAGE_ALLOCATE_BUFFER,
-		NULL,
-		wsaErrCode,
-		MAKELANGID(LANG_NEUTRAL, SUBLANG_DEFAULT),
-		(LPTSTR)&lpMsgBuf, 0, NULL
-	);
-	ret = (char*)lpMsgBuf;
-	LocalFree(lpMsgBuf);
-	return ret;
-}
+std::string GetErrInfo(int wsaErrCode);
 
 class CClientSocket
 {
@@ -160,21 +146,11 @@ public:
 		if (ret == -1)
 		{
 			AfxMessageBox("连接失败");
-			TRACE("连接失败：%d %s\r\n", WSAGetLastError(), GetErrorInfo(WSAGetLastError()).c_str());
+			TRACE("连接失败：%d %s\r\n", WSAGetLastError(), GetErrInfo(WSAGetLastError()).c_str());
 			return false;
 		}
 
-		if (listen(m_sock, 1)) return false;
 
-		return true;
-	}
-
-	bool AcceptClient()
-	{
-		sockaddr_in client_addr;
-		int cli_sz = sizeof client_addr;
-		m_sock = accept(m_sock, (sockaddr*)&client_addr, &cli_sz);
-		if (m_sock == -1) return false;
 		return true;
 	}
 
@@ -239,6 +215,11 @@ public:
 			return true;
 		}
 		return 0;
+	}
+
+	CPacket& GetPacket()
+	{
+		return m_packet;
 	}
 
 private:
