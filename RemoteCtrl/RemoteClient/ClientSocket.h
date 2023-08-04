@@ -4,6 +4,8 @@
 #include "pch.h"
 #include "framework.h"
 #include <string>
+#include <vector>
+
 class CPacket
 {
 public:
@@ -127,8 +129,11 @@ public:
 		}
 		return m_instance;
 	}
+
 	bool InitSocket(const std::string& strIPAddress)
 	{
+		if (m_sock != INVALID_SOCKET) CloseSocket();
+		m_sock = socket(PF_INET, SOCK_STREAM, 0);
 		if (m_sock == -1)return false;
 		sockaddr_in serv_addr;
 		memset(&serv_addr, 0, sizeof serv_addr);
@@ -138,14 +143,14 @@ public:
 
 		if (serv_addr.sin_addr.s_addr == INADDR_NONE)
 		{
-			AfxMessageBox("指定的IP地址，不存在！");
+			AfxMessageBox(_T("指定的IP地址，不存在！"));
 			return false;
 		}
 
 		int ret = connect(m_sock, (sockaddr*)&serv_addr, sizeof serv_addr);
 		if (ret == -1)
 		{
-			AfxMessageBox("连接失败");
+			AfxMessageBox(_T("连接失败"));
 			TRACE("连接失败：%d %s\r\n", WSAGetLastError(), GetErrInfo(WSAGetLastError()).c_str());
 			return false;
 		}
@@ -158,7 +163,7 @@ public:
 	int DealCommand() {//处理命令
 		if (m_sock == -1)return -1;
 		//char buffer[1024] = "";
-		char* buffer = new char[BUFFER_SIZE];
+		char* buffer = m_buffer.data();
 		if (buffer == NULL) {
 			TRACE("内存不足！\r\n");
 			return -2;
@@ -168,7 +173,6 @@ public:
 		while (true) {
 			size_t len = recv(m_sock, buffer + index, BUFFER_SIZE - index, 0);
 			if (len <= 0) {
-				delete[]buffer;
 				return -1;
 			}
 			TRACE("recv %d\r\n", len);
@@ -178,13 +182,12 @@ public:
 			if (len > 0) {
 				memmove(buffer, buffer + len, BUFFER_SIZE - len);
 				index -= len;
-				delete[]buffer;
 				return m_packet.sCmd;
 			}
 		}
-		delete[]buffer;
 		return -1;
 	}
+
 	bool Send(const char* pData, int nSize)
 	{
 		if (m_sock == -1)return false;
@@ -222,7 +225,14 @@ public:
 		return m_packet;
 	}
 
+	void CloseSocket()
+	{
+		closesocket(m_sock);
+		m_sock = INVALID_SOCKET;
+	}
+
 private:
+	std::vector<char> m_buffer;
 	SOCKET m_sock;
 	CPacket m_packet;
 	CClientSocket& operator=(const CClientSocket& ss)
@@ -242,7 +252,7 @@ private:
 			MessageBox(NULL, _T("无法初始化套接字环境, 请检查网络设置！"), _T("初始化错误！"), MB_OK | MB_ICONERROR);//text, caption
 			exit(0);
 		}
-		m_sock = socket(PF_INET, SOCK_STREAM, 0);
+		m_buffer.resize(BUFFER_SIZE);
 	};
 	~CClientSocket()
 	{

@@ -163,12 +163,13 @@ void CRemoteClientDlg::OnBnClickedBtnTest()
 	bool ret = pClient->InitSocket("127.0.0.1");
 	if (!ret)
 	{
-		AfxMessageBox("网络初始化失败！");
+		AfxMessageBox(_T("网络初始化失败！"));
 
 	}
 	CPacket pack(1981, NULL, 0);
 
 	pClient->Send(pack);
 	pClient->DealCommand();
-	pClient->GetPacket();
+	TRACE("ack:%d\r\n", pClient->GetPacket().sCmd);
+	pClient->CloseSocket();
 }

@@ -450,9 +450,9 @@ int main()
                     count++;
                 }
                 int ret = pserver->DealCommand();
-				if (ret == 0)
+				if (ret > 0)
 				{
-					ret = ExcuteCommand(pserver->GetPacket().sCmd);
+					ret = ExcuteCommand(ret);
 					if (ret)
 					{
 						TRACE("执行命令失败：%d ret = %d\r\n", pserver->GetPacket().sCmd, ret);
