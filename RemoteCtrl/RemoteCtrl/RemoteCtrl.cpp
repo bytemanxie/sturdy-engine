@@ -52,38 +52,23 @@ int MakeDriverInfo() {//1==>A 2==>B 3==>C ... 26==>Z
 #include <io.h>
 #include <list>
 
-typedef struct file_info {
-	file_info() {
-		IsInvalid = FALSE;
-		IsDirectory = -1;
-		HasNext = TRUE;
-		memset(szFileName, 0, sizeof(szFileName));
-	}
-	BOOL IsInvalid;//是否有效
-	BOOL IsDirectory;//是否为目录 0 否 1 是
-	BOOL HasNext;//是否还有后续 0 没有 1 有
-	char szFileName[256];//文件名
-}FILEINFO, * PFILEINFO;
+
 
 int MakeDirectoryInfo() {
 	std::string strPath;
 	//std::list<FILEINFO> lstFileInfos;
 	if (CServerSocket::getInstance()->GetFilePath(strPath) == false)
 	{
-		OutputDebugString(_T("当前的命令，不是获取文件列表，命令解析错误！！"));
+		OutputDebugString(_T("当前的命令，不是获取文件列表，命令解析错误！！\n"));
 		return -1;
 	}
 	if (_chdir(strPath.c_str()) != 0)
 	{
 		FILEINFO finfo;
-		finfo.IsInvalid = TRUE;
-		finfo.IsDirectory = TRUE;
 		finfo.HasNext = FALSE;
-		memcpy(finfo.szFileName, strPath.c_str(), strPath.size());
-		//lstFileInfos.push_back(finfo);
 		CPacket pack(2, (BYTE*) & finfo, sizeof finfo);
 		CServerSocket::getInstance()->Send(pack);
-		OutputDebugString(_T("没有权限，访问目录！！"));
+		OutputDebugString(_T("没有权限，访问目录！！\n"));
 
 		return -2;
 	}
@@ -91,7 +76,7 @@ int MakeDirectoryInfo() {
 	int hfind = 0;
 	if ((hfind = _findfirst("*", &fdata)) == -1)
 	{
-		OutputDebugString(_T("没有找到任何文件！！"));
+		OutputDebugString(_T("没有找到任何文件！！\n"));
 		return -3;
 	}
 	do {
