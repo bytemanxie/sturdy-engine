@@ -181,8 +181,8 @@ public:
 			TRACE("ÄÚ´æ²»×ã£¡\r\n");
 			return -2;
 		}
-		memset(buffer, 0, BUFFER_SIZE);
-		size_t index = 0;
+		//memset(buffer, 0, BUFFER_SIZE);
+		static size_t index = 0;
 		while (true) {
 			size_t len = recv(m_sock, buffer + index, BUFFER_SIZE - index, 0);
 			if (len <= 0) {
@@ -193,7 +193,7 @@ public:
 			len = index;
 			m_packet = CPacket((BYTE*)buffer, len);
 			if (len > 0) {
-				memmove(buffer, buffer + len, BUFFER_SIZE - len);
+				memmove(buffer, buffer + len, index - len);
 				index -= len;
 				return m_packet.sCmd;
 			}

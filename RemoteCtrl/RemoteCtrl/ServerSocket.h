@@ -29,6 +29,7 @@ public:
 		strData = pack.strData;
 		sSum = pack.sSum;
 	}
+	//构造函数为引用传递，修改nSize值为包的长度
 	CPacket(const BYTE* pData, size_t& nSize) {
 		size_t i = 0;
 		for (; i < nSize; i++) {//找包头
@@ -171,8 +172,8 @@ public:
 			TRACE("内存不足！\r\n");
 			return -2;
 		}
-		memset(buffer, 0, BUFFER_SIZE);
-		size_t index = 0;
+		//memset(buffer, 0, BUFFER_SIZE);
+		static size_t index = 0;
 		while (true) {
 			size_t len = recv(m_client, buffer + index, BUFFER_SIZE - index, 0);
 			if (len <= 0) {
@@ -184,7 +185,7 @@ public:
 			len = index;
 			m_packet = CPacket((BYTE*)buffer, len);
 			if (len > 0) {
-				memmove(buffer, buffer + len, BUFFER_SIZE - len);
+				memmove(buffer, buffer + len, index - len);
 				index -= len;
 				delete[]buffer;
 				return m_packet.sCmd;
