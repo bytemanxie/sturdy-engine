@@ -143,6 +143,9 @@ BEGIN_MESSAGE_MAP(CRemoteClientDlg, CDialogEx)
 	//ON_NOTIFY(NM_DBLCLK, IDC_TREE_DIR, &CRemoteClientDlg::OnNMDblclkTreeDir)
 	ON_NOTIFY(NM_CLICK, IDC_TREE_DIR, &CRemoteClientDlg::OnNMClickTreeDir)
 	ON_NOTIFY(NM_RCLICK, IDC_LIST_FILE, &CRemoteClientDlg::OnNMRClickListFile)
+	ON_COMMAND(ID_DOWNLOAD_FILE, &CRemoteClientDlg::OnDownloadFile)
+	ON_COMMAND(ID_DELETE_FILE, &CRemoteClientDlg::OnDeleteFile)
+	ON_COMMAND(ID_RUN_FILE, &CRemoteClientDlg::OnRunFile)
 END_MESSAGE_MAP()
 
 
@@ -269,6 +272,7 @@ void CRemoteClientDlg::OnBnClickedBtnFileinfo()
 	}
 }
 
+
  CString CRemoteClientDlg::GetPath(HTREEITEM hTree)
 {
 	CString strRet, strTmp;
@@ -318,10 +322,88 @@ void CRemoteClientDlg::OnNMRClickListFile(NMHDR* pNMHDR, LRESULT* pResult)
 	if (ListSelected < 0) return;
 
 	CMenu menu;
-	menu.LoadMenu(IDR_MENU_RCLICK);
-	CMenu* pPupup = menu.GetSubMenu(0);
+	menu.LoadMenu(IDR_MENU_RCLICK); //从资源中加载菜单资源 IDR_MENU_RCLICK，并将其关联到 menu 对象。
+	CMenu* pPupup = menu.GetSubMenu(0);//获取菜单中的第一个子菜单（弹出菜单），并将其赋值给指针 pPupup。
 	if (pPupup)
 	{
-		pPupup->TrackPopupMenu(TPM_LEFTALIGN | TPM_RIGHTBUTTON, ptMouse.x, ptMouse.y, this);
+		pPupup->TrackPopupMenu(TPM_LEFTALIGN | TPM_RIGHTBUTTON, ptMouse.x, ptMouse.y, this);//如果弹出菜单存在（pPupup 不为空），则以指定的位置参数调用 TrackPopupMenu 函数显示菜单。
+
+		//其中，TPM_LEFTALIGN 表示菜单左对齐，TPM_RIGHTBUTTON 表示使用右键激活菜单。ptMouse.x 和 ptMouse.y 表示菜单显示的位置，this 表示在当前窗口上显示菜单。
 	}
+}
+
+
+void CRemoteClientDlg::OnDownloadFile()
+{
+	int nListSelected = m_List.GetSelectionMark();
+	CString strFile = m_List.GetItemText(nListSelected, 0);
+	
+	CFileDialog dlg(FALSE, "*", m_List.GetItemText(nListSelected, 0), OFN_READONLY|
+		OFN_OVERWRITEPROMPT, NULL, this);
+
+	if (dlg.DoModal() == IDOK)
+	{
+		HTREEITEM hSelected = m_Tree.GetSelectedItem();
+		strFile = GetPath(hSelected) + strFile;
+
+		FILE* pFile = fopen(dlg.GetPathName(), "wb+");
+		if (pFile == NULL)
+		{
+			AfxMessageBox(_T("本地没有权限保存该文件， 或者无法创建！！！"));
+			return;
+		}
+
+		TRACE("%s\r\n", (LPCSTR)strFile);
+		CClientSocket* pClient = CClientSocket::getInstance();
+		do {
+			int ret = SendCommandPacket(4, false, (BYTE*)(LPCSTR)strFile, strFile.GetLength());
+			if (ret < 0)
+			{
+				AfxMessageBox("执行下载命令失败！！");
+				TRACE("执行下载失败：ret = %d\r\n", ret);
+				break;
+			}
+
+
+			//第一个包返回文件长度
+			long long nLength = *(long long*)pClient->GetPacket().strData.c_str();
+			if (nLength == 0)
+			{
+				AfxMessageBox("文件长度为零或者无法读取文件！！！");
+				break;
+			}
+
+			long long nCount = 0;
+
+			while (nCount < nLength)
+			{
+				ret = pClient->DealCommand();
+				if (ret < 0)
+				{
+					AfxMessageBox("传输失败！！");
+					TRACE("传输失败：ret = %d\r\n", ret);
+					break;
+				}
+				const char* buf = pClient->GetPacket().strData.c_str();
+				fwrite(buf, 1, strlen(buf), pFile);
+				nCount += pClient->GetPacket().strData.size();
+			}
+		} while (false);
+		
+		fclose(pFile);
+		pClient->CloseSocket();
+	}
+	
+}
+
+
+void CRemoteClientDlg::OnDeleteFile()
+{
+	// TODO: 在此添加命令处理程序代码
+}
+
+
+void CRemoteClientDlg::OnRunFile()
+{
+	// TODO: 在此添加命令处理程序代码
 }

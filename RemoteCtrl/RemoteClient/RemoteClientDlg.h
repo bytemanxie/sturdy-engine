@@ -27,7 +27,10 @@ private:
 	//4 下载文件
 	//返回命令号
 	void LoadFileInfo();
+	
+	//失败返回-1，nLength为发送数据的长度
 	int SendCommandPacket(int nCmd, bool bAutoClose = true, BYTE* pData = NULL, size_t nLength = 0);
+	//返回文件绝对路径
 	CString GetPath(HTREEITEM hTree);
 	void DeleteTreeItem(HTREEITEM hTree);
 // Implementation
@@ -51,4 +54,7 @@ public:
 	// 显示文件
 	CListCtrl m_List;
 	afx_msg void OnNMRClickListFile(NMHDR* pNMHDR, LRESULT* pResult);
+	afx_msg void OnDownloadFile();
+	afx_msg void OnDeleteFile();
+	afx_msg void OnRunFile();
 };

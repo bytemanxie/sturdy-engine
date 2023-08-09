@@ -108,6 +108,7 @@ int RunFile()
 	return 0;
 }
 
+//第一个包发送文件的长度
 int DownloadFile() {
 	std::string strPath;
 	CServerSocket::getInstance()->GetFilePath(strPath);
@@ -133,6 +134,7 @@ int DownloadFile() {
 		do {
 			rlen = fread(buffer, 1, 1024, pFile);
 			CPacket pack(4, (BYTE*)buffer, rlen);
+			Sleep(1);
 			CServerSocket::getInstance()->Send(pack);//读1K发1K
 		} while (rlen >= 1024);//不足1024说明读到文件尾
 		fclose(pFile);

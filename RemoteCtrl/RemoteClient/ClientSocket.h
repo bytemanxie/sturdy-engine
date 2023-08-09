@@ -10,6 +10,8 @@ class CPacket
 {
 public:
 	CPacket() :sHead(0), nLength(0), sCmd(0), sSum(0) {}
+
+	//nSize为发送数据的长度
 	CPacket(WORD nCmd, const BYTE* pData, size_t nSize) {
 		sHead = 0xFEFF;
 		nLength = nSize + 4;//加上控制命令和校验长度
