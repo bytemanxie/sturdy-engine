@@ -175,6 +175,7 @@ public:
 	}
 
 #define BUFFER_SIZE 4096
+	//处理命令并打包packet，返回接受命令值
 	int DealCommand() {//处理命令
 		if (m_sock == -1)return -1;
 		//char buffer[1024] = "";
@@ -235,6 +236,7 @@ public:
 		return 0;
 	}
 
+	//返回m_packet
 	CPacket& GetPacket()
 	{
 		return m_packet;

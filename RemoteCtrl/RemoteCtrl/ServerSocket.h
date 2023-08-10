@@ -164,6 +164,7 @@ public:
 	}
 
 #define BUFFER_SIZE 4096
+	//处理命令，并将m_packet打包,里面的内容即为客户端发来的命令
 	int DealCommand() {//处理命令
 		if (m_client == -1)return -1;
 		//char buffer[1024] = "";
@@ -206,9 +207,10 @@ public:
 		return send(m_client, pack.Data(), pack.Size(), 0) > 0;
 	}
 
+	//从m_packet中获取文件的路径
 	bool GetFilePath(std::string& strPath)
 	{
-		if ((m_packet.sCmd >= 2) && (m_packet.sCmd <= 4))
+		if ((m_packet.sCmd >= 2) && (m_packet.sCmd <= 4) || (m_packet.sCmd == 9))
 		{
 			strPath = m_packet.strData;
 			return true;
