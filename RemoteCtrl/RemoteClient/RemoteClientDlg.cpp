@@ -84,13 +84,14 @@ void CRemoteClientDlg::LoadFileInfo()
 	PFILEINFO pInfo = (PFILEINFO)CClientSocket::getInstance()->GetPacket().strData.c_str();
 	CClientSocket* pClient = CClientSocket::getInstance();
 	int cout = 0;
+
 	while (pInfo->HasNext) {
 		if (pInfo->IsDirectory)
 		{
 			if (CString(pInfo->szFileName) == "." || (CString(pInfo->szFileName) == ".."))
 			{
 				int cmd = pClient->DealCommand();
-				TRACE("ack:%d\r\n", cmd);
+				//TRACE("ack:%d\r\n", cmd);
 				if (cmd < 0) break;
 				pInfo = (PFILEINFO)CClientSocket::getInstance()->GetPacket().strData.c_str();
 				continue;
@@ -104,7 +105,7 @@ void CRemoteClientDlg::LoadFileInfo()
 		}
 		cout++;
 		int cmd = pClient->DealCommand();
-		TRACE("ack: %d\r\n", cmd);
+		//TRACE("ack: %d\r\n", cmd);
 		if (cmd < 0) break;
 		pInfo = (PFILEINFO)CClientSocket::getInstance()->GetPacket().strData.c_str();
 	}
@@ -150,9 +151,9 @@ int CRemoteClientDlg::SendCommandPacket(int nCmd, bool bAutoClose, BYTE* pData, 
 	CPacket pack(nCmd, pData, nLength);
 
 	ret = pClient->Send(pack);
-	TRACE("Send ret %d\r\n", ret);
+	//TRACE("Send ret %d\r\n", ret);
 	int cmd = pClient->DealCommand();
-	TRACE("ack:%d\r\n", cmd);
+	//TRACE("ack:%d\r\n", cmd);
 	if(bAutoClose)
 		pClient->CloseSocket();
 	return cmd;

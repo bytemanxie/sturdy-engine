@@ -88,7 +88,7 @@ int MakeDirectoryInfo() {
 		count++;
 		CPacket pack(2, (BYTE*)&finfo, sizeof finfo);
 		CServerSocket::getInstance()->Send(pack);
-		Sleep(1);
+		//Sleep(1);
 	} while (!_findnext(hfind, &fdata));
 	TRACE("server count = %d\r\n", count);
 	FILEINFO finfo;

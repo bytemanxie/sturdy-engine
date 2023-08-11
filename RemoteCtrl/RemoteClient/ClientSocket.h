@@ -188,10 +188,10 @@ public:
 		static size_t index = 0;
 		while (true) {
 			size_t len = recv(m_sock, buffer + index, BUFFER_SIZE - index, 0);
-			if (len <= 0) {
+			if (len <= 0 && (index == 0)) {
 				return -1;
 			}
-			TRACE("recv %d\r\n", len);
+			//TRACE("recv %d\r\n", len);
 			index += len;
 			len = index;
 			m_packet = CPacket((BYTE*)buffer, len);
@@ -270,6 +270,7 @@ private:
 			exit(0);
 		}
 		m_buffer.resize(BUFFER_SIZE);
+		memset((char*)m_buffer.data(), 0, BUFFER_SIZE);
 	};
 	~CClientSocket()
 	{
