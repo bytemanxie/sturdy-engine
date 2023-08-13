@@ -68,6 +68,44 @@ void CRemoteClientDlg::DoDataExchange(CDataExchange* pDX)
 	DDX_Control(pDX, IDC_LIST_FILE, m_List);
 }
 
+void CRemoteClientDlg::threadEntryForWatchData(void* arg)
+{
+	CRemoteClientDlg* thiz = (CRemoteClientDlg*)arg;
+	thiz->threadWatchData();
+	_endthread();
+}
+
+void CRemoteClientDlg::threadWatchData()
+{
+	CClientSocket* pClient = NULL;
+	do {
+		pClient = CClientSocket::getInstance();
+	} while (pClient == NULL);
+
+	for (;;)
+	{
+		CPacket pack(6, NULL, 0);
+		bool ret = pClient->Send(pack);
+		if (ret)
+		{
+			int cmd = pClient->DealCommand();//拿数据
+			if (cmd == 6)
+			{
+				if (m_isFull == false)
+				{
+					BYTE* pData = (BYTE*)pClient->GetPacket().strData.c_str();
+					//TODO:存入CImage
+					m_isFull = true;
+				}
+			}
+		}
+		else
+		{
+			Sleep(1);
+		}
+	}
+}
+
 void CRemoteClientDlg::threadEntryForDownFile(void* arg)
 {
 	CRemoteClientDlg* thiz = (CRemoteClientDlg*)arg;
@@ -249,6 +287,8 @@ BEGIN_MESSAGE_MAP(CRemoteClientDlg, CDialogEx)
 	ON_COMMAND(ID_DOWNLOAD_FILE, &CRemoteClientDlg::OnDownloadFile)
 	ON_COMMAND(ID_DELETE_FILE, &CRemoteClientDlg::OnDeleteFile)
 	ON_COMMAND(ID_RUN_FILE, &CRemoteClientDlg::OnRunFile)
+	//WM_SEND_PACKET 的自定义消息被派发到 CRemoteClientDlg 类的窗口时，
+	//将调用 CRemoteClientDlg::OnSendPacket 这个成员函数来处理该消息。
 	ON_MESSAGE(WM_SEND_PACKET, &CRemoteClientDlg::OnSendPacket)
 END_MESSAGE_MAP()
 
@@ -291,6 +331,7 @@ BOOL CRemoteClientDlg::OnInitDialog()
 	UpdateData(FALSE);//当bSave为FALSE时，函数将从数据成员中读取数据，并将其显示到窗口控件上。
 	m_dlgStatus.Create(IDD_DLG_STATUS, this);
 	m_dlgStatus.ShowWindow(SW_HIDE);
+	m_isFull = false;
 
 	return TRUE;  // return TRUE  unless you set the focus to a control
 }
