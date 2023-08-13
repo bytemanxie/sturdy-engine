@@ -188,7 +188,7 @@ public:
 		static size_t index = 0;
 		while (true) {
 			size_t len = recv(m_sock, buffer + index, BUFFER_SIZE - index, 0);
-			if (len <= 0 && (index == 0)) {
+			if (len <= 0 && (index == 0)) { // recv没有文件但是缓冲区可能还有
 				return -1;
 			}
 			//TRACE("recv %d\r\n", len);
