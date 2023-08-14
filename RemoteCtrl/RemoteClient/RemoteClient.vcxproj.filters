@@ -39,6 +39,9 @@
     <ClInclude Include="StatusDlg.h">
       <Filter>Header Files</Filter>
     </ClInclude>
+    <ClInclude Include="CWatchDialog.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="RemoteClient.cpp">
@@ -54,6 +57,9 @@
       <Filter>Source Files</Filter>
     </ClCompile>
     <ClCompile Include="StatusDlg.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="CWatchDialog.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
   </ItemGroup>

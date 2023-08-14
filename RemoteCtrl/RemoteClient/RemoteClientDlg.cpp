@@ -12,6 +12,7 @@
 #ifdef _DEBUG
 #define new DEBUG_NEW
 #endif
+#include "CWatchDialog.h"
 
 
 // CAboutDlg dialog used for App About
@@ -95,7 +96,26 @@ void CRemoteClientDlg::threadWatchData()
 				{
 					BYTE* pData = (BYTE*)pClient->GetPacket().strData.c_str();
 					//TODO:存入CImage
-					m_isFull = true;
+					HGLOBAL hMem = GlobalAlloc(GMEM_MOVEABLE, 0);
+					if (hMem == NULL)
+					{
+						TRACE("内存不足！");
+						Sleep(1);
+						continue;
+					}
+
+					IStream* pStream = NULL;
+					HRESULT hRet = CreateStreamOnHGlobal(hMem, TRUE, &pStream);
+					if (hRet == S_OK)
+					{
+						ULONG length = 0;
+						pStream->Write(pData, pClient->GetPacket().strData.size(), &length);
+						LARGE_INTEGER bg = { 0 };
+						pStream->Seek(bg, STREAM_SEEK_SET, NULL);//流指针设置为流头
+						m_image.Load(pStream);
+						m_isFull = true;
+					}
+
 				}
 			}
 		}
@@ -290,6 +310,9 @@ BEGIN_MESSAGE_MAP(CRemoteClientDlg, CDialogEx)
 	//WM_SEND_PACKET 的自定义消息被派发到 CRemoteClientDlg 类的窗口时，
 	//将调用 CRemoteClientDlg::OnSendPacket 这个成员函数来处理该消息。
 	ON_MESSAGE(WM_SEND_PACKET, &CRemoteClientDlg::OnSendPacket)
+	
+	ON_BN_CLICKED(IDC_BTN_START_WATCH, &CRemoteClientDlg::OnBnClickedBtnStartWatch)
+	ON_WM_TIMER()
 END_MESSAGE_MAP()
 
 
@@ -533,4 +556,23 @@ LRESULT CRemoteClientDlg::OnSendPacket(WPARAM wParam, LPARAM lParam)
 	CString strFile = (LPCSTR)lParam;
 	int ret = SendCommandPacket(wParam >> 1, wParam & 1, (BYTE*)(LPCSTR)strFile, strFile.GetLength());
 	return ret;
+}
+
+
+
+
+void CRemoteClientDlg::OnBnClickedBtnStartWatch()
+{
+	// TODO: 在此添加控件通知处理程序代码
+	_beginthread(CRemoteClientDlg::threadEntryForWatchData, 0, this);
+	CWatchDialog dlg(this);
+	dlg.DoModal();
+}
+
+
+void CRemoteClientDlg::OnTimer(UINT_PTR nIDEvent)
+{
+	// TODO: 在此添加消息处理程序代码和/或调用默认值
+
+	CDialogEx::OnTimer(nIDEvent);
 }
