@@ -25,11 +25,13 @@ CWatchDialog::~CWatchDialog()
 void CWatchDialog::DoDataExchange(CDataExchange* pDX)
 {
 	CDialogEx::DoDataExchange(pDX);
+	DDX_Control(pDX, IDC_WATCH, m_picture);
 }
 
 
 BEGIN_MESSAGE_MAP(CWatchDialog, CDialogEx)
-	ON_WM_TIMER()
+//	ON_WM_TIMER()
+ON_WM_TIMER()
 END_MESSAGE_MAP()
 
 
@@ -49,13 +51,20 @@ BOOL CWatchDialog::OnInitDialog()
 
 void CWatchDialog::OnTimer(UINT_PTR nIDEvent)
 {
-	// TODO: 在此添加消息处理程序代码和/或调用默认值
+	 //TODO: 在此添加消息处理程序代码和/或调用默认值
 	if (nIDEvent == 0)
 	{
 		CRemoteClientDlg* pParent = (CRemoteClientDlg*)GetParent();
 		if (pParent->isFull())
 		{
-
+			CRect rect;
+			m_picture.GetWindowRect(rect);
+			//pParent->GetImage().BitBlt(m_picture.GetDC()->GetSafeHdc(), 0, 0, SRCCOPY);
+			pParent->GetImage().StretchBlt(m_picture.GetDC()->GetSafeHdc(), 0, 0, 
+				rect.Width(), rect.Height(), SRCCOPY);
+			m_picture.InvalidateRect(NULL);
+			pParent->GetImage().Destroy();
+			pParent->SetImageStatus();
 		}
 	}
 	CDialogEx::OnTimer(nIDEvent);

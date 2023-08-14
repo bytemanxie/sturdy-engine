@@ -134,7 +134,7 @@ int DownloadFile() {
 		do {
 			rlen = fread(buffer, 1, 1024, pFile);
 			CPacket pack(4, (BYTE*)buffer, rlen);
-			Sleep(1);
+			//Sleep(1);
 			CServerSocket::getInstance()->Send(pack);//读1K发1K
 		} while (rlen >= 1024);//不足1024说明读到文件尾
 		fclose(pFile);

@@ -31,6 +31,10 @@ public:
 	{
 		return m_image;
 	}
+	void SetImageStatus(bool isFull = false)
+	{
+		m_isFull = isFull;
+	}
 private:
 	CImage m_image;//缓存
 	bool m_isFull;//缓存是否有数据
@@ -51,7 +55,7 @@ private:
 	//8 解锁
 	//9 删除文件
 	//1981 测试连接
-	//返回命令号
+	//成功返回命令号， 内部调用了dealcommand
 	//失败返回-1，nLength为发送数据的长度
 	int SendCommandPacket(int nCmd, bool bAutoClose = true, BYTE* pData = NULL, size_t nLength = 0);
 	//返回文件绝对路径
@@ -83,7 +87,5 @@ public:
 	afx_msg void OnDeleteFile();
 	afx_msg void OnRunFile();
 	afx_msg LRESULT OnSendPacket(WPARAM wParam, LPARAM lParam);
-	afx_msg void OnBnClickedButton3();
 	afx_msg void OnBnClickedBtnStartWatch();
-	afx_msg void OnTimer(UINT_PTR nIDEvent);
 };
