@@ -164,7 +164,7 @@ int MouseEvent()
 		case 2://中键
 			nFlags = 4;
 			break;
-		case 4:
+		case 4://没有按键
 			nFlags = 8;
 			break;
 		}
@@ -184,6 +184,7 @@ int MouseEvent()
 			nFlags |= 0x80;
 			break;
 		}
+		TRACE("mouse event : %08X x %d y %d\r\n", nFlags, mouse.ptXY.x, mouse.ptXY.y);
 		switch (nFlags)
 		{
 		case 0x21://触发左键双击效果

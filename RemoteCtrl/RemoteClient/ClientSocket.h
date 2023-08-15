@@ -177,7 +177,7 @@ public:
 		return true;
 	}
 
-#define BUFFER_SIZE 409600
+#define BUFFER_SIZE 4096000
 	//处理命令并打包packet，返回接受命令值
 	int DealCommand() {//处理命令
 		if (m_sock == -1)return -1;
