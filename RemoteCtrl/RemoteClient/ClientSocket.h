@@ -118,6 +118,9 @@ typedef struct file_info {
 	char szFileName[256];//文件名
 }FILEINFO, * PFILEINFO;
 
+//点击、移动、双击
+//左键、右键、中键
+//坐标
 typedef struct MouseEvent {
 	MouseEvent()
 	{
