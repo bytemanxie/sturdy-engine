@@ -84,7 +84,7 @@ void CRemoteClientDlg::threadWatchData()
 		pClient = CClientSocket::getInstance();
 	} while (pClient == NULL);
 	ULONGLONG tick = GetTickCount64();
-	for (;;)
+	while(!m_isClosed)
 	{
 		if (m_isFull == false)
 		{
@@ -109,7 +109,9 @@ void CRemoteClientDlg::threadWatchData()
 					pStream->Write(pData, pClient->GetPacket().strData.size(), &length);
 					LARGE_INTEGER bg = { 0 };
 					pStream->Seek(bg, STREAM_SEEK_SET, NULL);//流指针设置为流头
-					m_image.Load(pStream);
+					if ((HBITMAP)m_image != NULL) m_image.Destroy();
+
+					if(m_image == NULL)m_image.Load(pStream);
 					m_isFull = true;
 				}
 			}
@@ -286,9 +288,9 @@ int CRemoteClientDlg::SendCommandPacket(int nCmd, bool bAutoClose, BYTE* pData, 
 	CPacket pack(nCmd, pData, nLength);
 
 	ret = pClient->Send(pack);
-	//TRACE("Send ret %d\r\n", ret);
+	TRACE("Send ret %d\r\n", ret);
 	int cmd = pClient->DealCommand();
-	//TRACE("ack:%d\r\n", cmd);
+	TRACE("ack:%d\r\n", cmd);
 	if(bAutoClose)
 		pClient->CloseSocket();
 	return cmd;
@@ -348,7 +350,8 @@ BOOL CRemoteClientDlg::OnInitDialog()
 
 	// TODO: Add extra initialization here
 	UpdateData();
-	m_server_address = 0x7f000001;
+	//m_server_address = 0x7F000001;
+	m_server_address = 0xC0A80A14;
 	m_nPort = _T("9527");
 	UpdateData(FALSE);//当bSave为FALSE时，函数将从数据成员中读取数据，并将其显示到窗口控件上。
 	m_dlgStatus.Create(IDD_DLG_STATUS, this);
@@ -582,9 +585,12 @@ LRESULT CRemoteClientDlg::OnSendPacket(WPARAM wParam, LPARAM lParam)
 void CRemoteClientDlg::OnBnClickedBtnStartWatch()
 {
 	// TODO: 在此添加控件通知处理程序代码
+	m_isClosed = false;
 	CWatchDialog dlg(this);
-	_beginthread(CRemoteClientDlg::threadEntryForWatchData, 0, this);
+	HANDLE hThread = (HANDLE)_beginthread(CRemoteClientDlg::threadEntryForWatchData, 0, this);
 	dlg.DoModal();
+	m_isClosed = true;
+	WaitForSingleObject(hThread, 500);//防止多次打开，启用多个线程进行收发图片
 }
 
 

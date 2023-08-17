@@ -42,9 +42,9 @@ int MakeDriverInfo() {//1==>A 2==>B 3==>C ... 26==>Z
 			result += 'A' + i - 1;
 		}
 	}
-    CPacket pack(1, (BYTE*)result.c_str(), result.size());//将result打包
-    Dump((BYTE*)pack.Data(), pack.Size());
-    CServerSocket::getInstance()->Send(pack);
+	CPacket pack(1, (BYTE*)result.c_str(), result.size());//将result打包
+	Dump((BYTE*)pack.Data(), pack.Size());
+	CServerSocket::getInstance()->Send(pack);
 	return 0;
 }
 
@@ -66,7 +66,7 @@ int MakeDirectoryInfo() {
 	{
 		FILEINFO finfo;
 		finfo.HasNext = FALSE;
-		CPacket pack(2, (BYTE*) & finfo, sizeof finfo);
+		CPacket pack(2, (BYTE*)&finfo, sizeof finfo);
 		CServerSocket::getInstance()->Send(pack);
 		OutputDebugString(_T("没有权限，访问目录！！\n"));
 
@@ -139,10 +139,10 @@ int DownloadFile() {
 		} while (rlen >= 1024);//不足1024说明读到文件尾
 		fclose(pFile);
 	}
-	
+
 	CPacket pack(4, NULL, 0);
 	CServerSocket::getInstance()->Send(pack);//结束再发一个包
-	
+
 	return 0;
 }
 
@@ -151,8 +151,9 @@ int MouseEvent()
 	MOUSEEV mouse;
 	if (CServerSocket::getInstance()->GetMouseEvent(mouse))
 	{
-		
+
 		DWORD nFlags = 0;
+
 		switch (mouse.nButton)
 		{
 		case 0://左键
@@ -168,7 +169,7 @@ int MouseEvent()
 			nFlags = 8;
 			break;
 		}
-		if(nFlags != 8)SetCursorPos(mouse.ptXY.x, mouse.ptXY.y);
+		if (nFlags != 8) SetCursorPos(mouse.ptXY.x, mouse.ptXY.y);
 		switch (mouse.nAction)
 		{
 		case 0://单击
@@ -183,57 +184,85 @@ int MouseEvent()
 		case 3://放开
 			nFlags |= 0x80;
 			break;
+		default:
+			break;
 		}
-		TRACE("mouse event : %08X x %d y %d\r\n", nFlags, mouse.ptXY.x, mouse.ptXY.y);
+		/*if (mouse.nButton == 8 && mouse.nAction == 0) {
+			printf("nButton %d nAction %d\r\n", mouse.nButton, mouse.nAction);
+			printf("mouse event : %08X x %d y %d\r\n", nFlags, mouse.ptXY.x, mouse.ptXY.y);
+		}*/
+		
 		switch (nFlags)
 		{
 		case 0x21://触发左键双击效果
+			//printf("0x21\r\n");
+
 			mouse_event(MOUSEEVENTF_LEFTDOWN, 0, 0, 0, GetMessageExtraInfo());
 			mouse_event(MOUSEEVENTF_LEFTUP, 0, 0, 0, GetMessageExtraInfo());
 		case 0x11:
+			//printf("0x11\r\n");
+
 			mouse_event(MOUSEEVENTF_LEFTDOWN, 0, 0, 0, GetMessageExtraInfo());
 			mouse_event(MOUSEEVENTF_LEFTUP, 0, 0, 0, GetMessageExtraInfo());
 			break;
 		case 0x41:
+			//printf("0x41\r\n");
+
 			mouse_event(MOUSEEVENTF_LEFTDOWN, 0, 0, 0, GetMessageExtraInfo());
 			break;
 		case 0x81:
+			//printf("0x81\r\n");
+
 			mouse_event(MOUSEEVENTF_LEFTUP, 0, 0, 0, GetMessageExtraInfo());
 			break;
 		case 0x22:
+			//printf("22\r\n");
+
 			mouse_event(MOUSEEVENTF_RIGHTDOWN, 0, 0, 0, GetMessageExtraInfo());
 			mouse_event(MOUSEEVENTF_RIGHTUP, 0, 0, 0, GetMessageExtraInfo());
 		case 0x12:
+			//printf("0x12\r\n");
+
 			mouse_event(MOUSEEVENTF_RIGHTDOWN, 0, 0, 0, GetMessageExtraInfo());
 			mouse_event(MOUSEEVENTF_RIGHTUP, 0, 0, 0, GetMessageExtraInfo());
 			break;
-		
+
 		case 0x42://右键按下
+			//printf("右键按下\r\n");
+
 			mouse_event(MOUSEEVENTF_RIGHTDOWN, 0, 0, 0, GetMessageExtraInfo());
 			break;
 		case 0x82://右键放开
+			//printf("右键放开\r\n");
+
 			mouse_event(MOUSEEVENTF_RIGHTUP, 0, 0, 0, GetMessageExtraInfo());
 			break;
 
 		case 0x24://中键双击
+			//printf("中键双击\r\n");
 			mouse_event(MOUSEEVENTF_MIDDLEDOWN, 0, 0, 0, GetMessageExtraInfo());
 			mouse_event(MOUSEEVENTF_MIDDLEUP, 0, 0, 0, GetMessageExtraInfo());
 		case 0x14:
+			//printf("0x14\r\n");
 			mouse_event(MOUSEEVENTF_MIDDLEDOWN, 0, 0, 0, GetMessageExtraInfo());
 			mouse_event(MOUSEEVENTF_MIDDLEUP, 0, 0, 0, GetMessageExtraInfo());
 			break;
-		
+
 		case 0x44:
+			//printf("44\r\n");
+
 			mouse_event(MOUSEEVENTF_MIDDLEDOWN, 0, 0, 0, GetMessageExtraInfo());
 			break;
 		case 0x84:
+			//printf("0x84\r\n");
 			mouse_event(MOUSEEVENTF_MIDDLEUP, 0, 0, 0, GetMessageExtraInfo());
 			break;
 		case 0x08://单纯鼠标移动
+			//printf("Move:%d \r\n", nFlags);
 			mouse_event(MOUSEEVENTF_MOVE, mouse.ptXY.x, mouse.ptXY.y, 0, GetMessageExtraInfo());
 			break;
 		}
-		CPacket pack(4, NULL, 0);
+		CPacket pack(5, NULL, 0);
 		CServerSocket::getInstance()->Send(pack);
 	}
 	else
@@ -253,7 +282,7 @@ int SendScreen()
 	int nHeight = GetDeviceCaps(hScreen, VERTRES);
 	screen.Create(nwidth, nHeight, nBitPerPixel);
 
-	BitBlt(screen.GetDC(), 0, 0, 1920, 1020, hScreen, 0, 0, SRCCOPY);
+	BitBlt(screen.GetDC(), 0, 0, nwidth, nHeight, hScreen, 0, 0, SRCCOPY);
 	ReleaseDC(NULL, hScreen);
 
 	HGLOBAL hMem = GlobalAlloc(GMEM_MOVEABLE, 0);
@@ -266,9 +295,9 @@ int SendScreen()
 		screen.Save(pStream, Gdiplus::ImageFormatPNG);
 		LARGE_INTEGER bg = { 0 };
 		pStream->Seek(bg, STREAM_SEEK_SET, NULL);//流指针设置为流头
-		PBYTE pData = (PBYTE) GlobalLock(hMem);
+		PBYTE pData = (PBYTE)GlobalLock(hMem);
 		SIZE_T nSize = GlobalSize(hMem);
-		
+
 		CPacket pack(6, pData, nSize);
 		CServerSocket::getInstance()->Send(pack);
 		GlobalUnlock(hMem);
@@ -294,7 +323,7 @@ unsigned int threadid;
 
 unsigned int _stdcall threadLockDlg(void*)
 {
-	TRACE("%s %d %d\r\n", __FILE__,__LINE__, GetCurrentThreadId());
+	TRACE("%s %d %d\r\n", __FILE__, __LINE__, GetCurrentThreadId());
 	dlg.Create(IDD_DIALOG_INFO, NULL);
 	dlg.ShowWindow(SW_SHOW);
 	//遮蔽后台窗口
@@ -427,42 +456,42 @@ int ExcuteCommand(int nCmd)
 
 int main()
 {
-    int nRetCode = 0;
+	int nRetCode = 0;
 
-    HMODULE hModule = ::GetModuleHandle(nullptr);
+	HMODULE hModule = ::GetModuleHandle(nullptr);
 
-    if (hModule != nullptr)
-    {
-        // initialize MFC and print and error on failure
-        if (!AfxWinInit(hModule, nullptr, ::GetCommandLine(), 0))
-        {
-            // TODO: code your application's behavior here.
-            wprintf(L"Fatal Error: MFC initialization failed\n");
-            nRetCode = 1;
-        }
-        else
-        {
-             //TODO: code your application's behavior here.
-            CServerSocket* pserver = CServerSocket::getInstance();
-            int count = 0;
-            if (pserver->InitSocket() == false)
-            {
-                MessageBox(NULL, _T("网络初始化异常！"), _T("网络初始化失败！"), MB_OK | MB_ICONERROR);
-                exit(0);
-            }
-            while (CServerSocket::getInstance())
-            {
-                if (pserver->AcceptClient() == false)
-                {
-                    if (count >= 3)
-                    {
-                        MessageBox(NULL, _T("多次无法接入用户， 结束程序！"), _T("接入用户失败！"), MB_OK | MB_ICONERROR);
-                        exit(0);
-                    }
-                    MessageBox(NULL, _T("无法接入用户， 自动重试！"), _T("接入用户失败！"), MB_OK | MB_ICONERROR);
-                    count++;
-                }
-                int ret = pserver->DealCommand();
+	if (hModule != nullptr)
+	{
+		// initialize MFC and print and error on failure
+		if (!AfxWinInit(hModule, nullptr, ::GetCommandLine(), 0))
+		{
+			// TODO: code your application's behavior here.
+			wprintf(L"Fatal Error: MFC initialization failed\n");
+			nRetCode = 1;
+		}
+		else
+		{
+			//TODO: code your application's behavior here.
+			CServerSocket* pserver = CServerSocket::getInstance();
+			int count = 0;
+			if (pserver->InitSocket() == false)
+			{
+				MessageBox(NULL, _T("网络初始化异常！"), _T("网络初始化失败！"), MB_OK | MB_ICONERROR);
+				exit(0);
+			}
+			while (CServerSocket::getInstance())
+			{
+				if (pserver->AcceptClient() == false)
+				{
+					if (count >= 3)
+					{
+						MessageBox(NULL, _T("多次无法接入用户， 结束程序！"), _T("接入用户失败！"), MB_OK | MB_ICONERROR);
+						exit(0);
+					}
+					MessageBox(NULL, _T("无法接入用户， 自动重试！"), _T("接入用户失败！"), MB_OK | MB_ICONERROR);
+					count++;
+				}
+				int ret = pserver->DealCommand();
 				if (ret > 0)
 				{
 					ret = ExcuteCommand(ret);
@@ -472,17 +501,17 @@ int main()
 					}
 					pserver->CloseClient();
 				}
-					
-                //TODO
-            }
-        }
-    }
-    else
-    {
-        // TODO: change error code to suit your needs
-        wprintf(L"Fatal Error: GetModuleHandle failed\n");
-        nRetCode = 1;
-    }
 
-    return nRetCode;
+				//TODO
+			}
+		}
+	}
+	else
+	{
+		// TODO: change error code to suit your needs
+		wprintf(L"Fatal Error: GetModuleHandle failed\n");
+		nRetCode = 1;
+	}
+
+	return nRetCode;
 }

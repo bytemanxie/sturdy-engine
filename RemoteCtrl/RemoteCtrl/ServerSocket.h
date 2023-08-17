@@ -158,7 +158,7 @@ public:
 		sockaddr_in client_addr;
 		int cli_sz = sizeof client_addr;
 		m_client = accept(m_sock, (sockaddr*)&client_addr, &cli_sz);
-		TRACE("m_client = %d\r\n", m_client);
+		//TRACE("m_client = %d\r\n", m_client);
 		if (m_client == -1) return false;
 		return true;
 	}
@@ -181,7 +181,7 @@ public:
 				delete[]buffer;
 				return -1;
 			}
-			TRACE("recv %d\r\n", len);
+			//TRACE("recv %d\r\n", len);
 			index += len;
 			len = index;
 			m_packet = CPacket((BYTE*)buffer, len);
