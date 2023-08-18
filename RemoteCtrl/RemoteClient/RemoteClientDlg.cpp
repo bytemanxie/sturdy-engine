@@ -351,7 +351,7 @@ BOOL CRemoteClientDlg::OnInitDialog()
 	// TODO: Add extra initialization here
 	UpdateData();
 	//m_server_address = 0x7F000001;
-	m_server_address = 0xC0A80A14;
+	m_server_address = 0xC0A80A10;
 	m_nPort = _T("9527");
 	UpdateData(FALSE);//当bSave为FALSE时，函数将从数据成员中读取数据，并将其显示到窗口控件上。
 	m_dlgStatus.Create(IDD_DLG_STATUS, this);
@@ -575,6 +575,12 @@ LRESULT CRemoteClientDlg::OnSendPacket(WPARAM wParam, LPARAM lParam)
 			ret = SendCommandPacket(cmd, wParam & 1, NULL, 0);
 		}
 		break;
+	case 7:
+	case 8:
+	{
+		ret = SendCommandPacket(cmd, wParam & 1);
+	}
+	break;
 	default:
 		ret = -1;
 	}
