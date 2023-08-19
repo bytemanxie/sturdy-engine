@@ -321,7 +321,7 @@ int SendScreen()
 CLockInfoDialog dlg;
 unsigned int threadid;
 
-unsigned int _stdcall threadLockDlg(void*)
+unsigned _stdcall threadLockDlg(void* arg)
 {
 	TRACE("%s %d %d\r\n", __FILE__, __LINE__, GetCurrentThreadId());
 	dlg.Create(IDD_DIALOG_INFO, NULL);
