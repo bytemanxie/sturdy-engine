@@ -127,7 +127,7 @@ protected:
 	}
 
 	//从m_packet中获取文件的路径
-	bool GetFilePath(std::string& strPath)
+	/*bool GetFilePath(std::string& strPath)
 	{
 		if ((m_packet.sCmd >= 2) && (m_packet.sCmd <= 4) || (m_packet.sCmd == 9))
 		{
@@ -135,9 +135,9 @@ protected:
 			return true;
 		}
 		return false;
-	}
+	}*/
 
-	bool GetMouseEvent(const MOUSEEV& mouse)
+	/*bool GetMouseEvent(const MOUSEEV& mouse)
 	{
 		if (m_packet.sCmd == 5)
 		{
@@ -145,12 +145,12 @@ protected:
 			return true;
 		}
 		return 0;
-	}
+	}*/
 
-	CPacket& GetPacket()
+	/*CPacket& GetPacket()
 	{
 		return m_packet;
-	}
+	}*/
 	void CloseClient()
 	{
 		if (m_client != INVALID_SOCKET)

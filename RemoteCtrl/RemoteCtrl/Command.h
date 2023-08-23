@@ -133,13 +133,14 @@ protected:
 			size_t rlen = 0;
 			do {
 				rlen = fread(buffer, 1, 1024, pFile);
-				lstPacket.push_back(CPacket(4, (BYTE*)&data, 8));//读1K发1K
+				lstPacket.push_back(CPacket(4, (BYTE*)buffer, rlen));//读1K发1K
 			} while (rlen >= 1024);//不足1024说明读到文件尾
 			fclose(pFile);
 		}
-
-		lstPacket.push_back(CPacket(4, (BYTE*)&data, 8));//结束再发一个包
-
+		else
+		{
+			lstPacket.push_back(CPacket(4, (BYTE*)&data, 8));//结束再发一个包
+		}
 		return 0;
 	}
 
