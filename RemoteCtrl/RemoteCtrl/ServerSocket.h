@@ -1,129 +1,12 @@
 #pragma once
-#include "pch.h"
-#include "framework.h"
-class CPacket
-{
-public:
-	CPacket() :sHead(0), nLength(0), sCmd(0), sSum(0) {}
-	CPacket(WORD nCmd, const BYTE* pData, size_t nSize) {
-		sHead = 0xFEFF;
-		nLength = nSize + 4;//加上控制命令和校验长度
-		sCmd = nCmd;
-		if (nSize > 0) {
-			strData.resize(nSize);
-			memcpy((void*)strData.c_str(), pData, nSize);
-		}
-		else {
-			strData.clear();
-		}
-		sSum = 0;
-		for (size_t j = 0; j < strData.size(); j++)
-		{
-			sSum += BYTE(strData[j]) & 0xFF;
-		}
-	}
-	CPacket(const CPacket& pack) {//拷贝构造函数
-		sHead = pack.sHead;
-		nLength = pack.nLength;
-		sCmd = pack.sCmd;
-		strData = pack.strData;
-		sSum = pack.sSum;
-	}
-	//构造函数为引用传递，修改nSize值为包的长度
-	CPacket(const BYTE* pData, size_t& nSize) {
-		size_t i = 0;
-		for (; i < nSize; i++) {//找包头
-			if (*(WORD*)(pData + i) == 0xFEFF) {
-				sHead = *(WORD*)(pData + i);
-				i += 2;
-				break;
-			}
-		}
-		if (i + 4 + 2 + 2 > nSize) {//包数据可能不全，或者包头未能全部接收到
-			nSize = 0;
-			return;
-		}
-		nLength = *(DWORD*)(pData + i); i += 4;
-		if (nLength + i > nSize) {//包未完全接收到，就返回，解析失败
-			nSize = 0;
-			return;
-		}
-		sCmd = *(WORD*)(pData + i); i += 2;
-		if (nLength > 4) {
-			strData.resize(nLength - 2 - 2);
-			memcpy((void*)strData.c_str(), pData + i, nLength - 4);
-			i += nLength - 4;
-		}
-		sSum = *(WORD*)(pData + i); i += 2;
-		WORD sum = 0;
-		for (size_t j = 0; j < strData.size(); j++)
-		{
-			sum += BYTE(strData[j]) & 0xFF;
-		}
-		if (sum == sSum) {
-			nSize = i;//head2 length4 data...
-			return;
-		}
-		nSize = 0;
-	}
-	~CPacket() {}
-	CPacket& operator=(const CPacket& pack) {
-		if (this != &pack) {
-			sHead = pack.sHead;
-			nLength = pack.nLength;
-			sCmd = pack.sCmd;
-			strData = pack.strData;
-			sSum = pack.sSum;
-		}
-		return *this;
-	}
-	int Size() {//包数据的大小
-		return nLength + 6;
-	}
-	const char* Data() {
-		strOut.resize(nLength + 6);
-		BYTE* pData = (BYTE*)strOut.c_str();
-		*(WORD*)pData = sHead; pData += 2;
-		*(DWORD*)(pData) = nLength; pData += 4;
-		*(WORD*)pData = sCmd; pData += 2;
-		memcpy(pData, strData.c_str(), strData.size()); pData += strData.size();
-		*(WORD*)pData = sSum;
-		return strOut.c_str();
-	}
-public:
-	WORD sHead;//固定位 0xFEFF
-	DWORD nLength;//包长度（从控制命令开始，到和校验结束）
-	WORD sCmd;//控制命令
-	std::string strData;//包数据
-	WORD sSum;//和校验
-	std::string strOut;//整个包的数据
-};
 
-typedef struct file_info {
-	file_info() {
-		IsInvalid = FALSE;
-		IsDirectory = -1;
-		HasNext = TRUE;
-		memset(szFileName, 0, sizeof(szFileName));
-	}
-	BOOL IsInvalid;//是否有效
-	BOOL IsDirectory;//是否为目录 0 否 1 是
-	BOOL HasNext;//是否还有后续 0 没有 1 有
-	char szFileName[256];//文件名
-}FILEINFO, * PFILEINFO;
+#include <list>
 
-typedef struct MouseEvent{
-	MouseEvent()
-	{
-		nAction = 0;
-		nButton = -1;
-		ptXY.x = 0;
-		ptXY.y = 0;
-	}
-	WORD nAction;//点击、移动、双击
-	WORD nButton;//左键、右键、中键
-	POINT ptXY;//坐标
-}MOUSEEV, *PMOUSEEV;
+#include "Packet.h"
+
+
+
+typedef void (*SOCKET_CALLBACK)(void* , int , std::list<CPacket>&, CPacket&);
 
 class CServerSocket
 {
@@ -136,9 +19,44 @@ public:
 		}
 		return m_instance;
 	}
-	bool InitSocket()
+
+	
+
+	int Run(SOCKET_CALLBACK callback, void* arg, short port = 9527)
 	{
-		
+		bool ret = InitSocket(port);
+		if (ret == false) return -1;
+		std::list<CPacket> lstPackets;
+		m_callback = callback;
+		m_arg = arg;
+		int count = 0;
+		while (true)
+		{
+			if (AcceptClient() == false)
+			{
+				if (count >= 3) return -2;
+				count++;
+			}
+			int ret = DealCommand();
+			if (ret > 0)
+			{
+				m_callback(m_arg, ret, lstPackets, m_packet);
+				while (lstPackets.size() > 0)
+				{
+					Send(lstPackets.front());
+					lstPackets.pop_front();
+				}
+			}
+			CloseClient();
+		}
+		return 0;
+	}
+
+protected:
+
+	bool InitSocket(short port)
+	{
+
 		if (m_sock == -1)return false;
 		sockaddr_in serv_addr;
 		memset(&serv_addr, 0, sizeof serv_addr);
@@ -149,7 +67,7 @@ public:
 		if (bind(m_sock, (sockaddr*)&serv_addr, sizeof serv_addr) == -1) return false;
 
 		if (listen(m_sock, 1)) return false;
-		
+
 		return true;
 	}
 
@@ -165,6 +83,7 @@ public:
 
 #define BUFFER_SIZE 4096
 	//处理命令，并将m_packet打包,里面的内容即为客户端发来的命令
+	//返回接收到的命令号
 	int DealCommand() {//处理命令
 		if (m_client == -1)return -1;
 		//char buffer[1024] = "";
@@ -234,10 +153,16 @@ public:
 	}
 	void CloseClient()
 	{
-		closesocket(m_client);
-		m_client = INVALID_SOCKET;
+		if (m_client != INVALID_SOCKET)
+		{
+			closesocket(m_client);
+			m_client = INVALID_SOCKET;
+		}
+		
 	}
 private:
+	SOCKET_CALLBACK m_callback;
+	void* m_arg;
 	SOCKET m_sock, m_client;
 	CPacket m_packet;
 	CServerSocket& operator=(const CServerSocket& ss)
