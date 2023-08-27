@@ -186,6 +186,7 @@
     <ClInclude Include="ClientController.h" />
     <ClInclude Include="ClientSocket.h" />
     <ClInclude Include="CWatchDialog.h" />
+    <ClInclude Include="EdoyunTool.h" />
     <ClInclude Include="framework.h" />
     <ClInclude Include="pch.h" />
     <ClInclude Include="RemoteClient.h" />

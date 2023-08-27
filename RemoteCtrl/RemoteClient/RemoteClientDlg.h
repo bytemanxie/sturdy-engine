@@ -46,13 +46,8 @@ private:
 	void threadDownFile();
 	void LoadFileInfo();
 	void LoadFileCurrent();
-	//1 查看磁盘分区 2 查看指定目录下的文件 3 打开文件
-	//4 下载文件 5 鼠标操作 6 发送屏幕内容
-	//7 锁机 8 解锁 9 删除文件
-	//1981 测试连接
-	//成功返回命令号， 内部调用了dealcommand
-	//失败返回-1，nLength为发送数据的长度
-	int SendCommandPacket(int nCmd, bool bAutoClose = true, BYTE* pData = NULL, size_t nLength = 0);
+
+	
 	//返回文件绝对路径
 	CString GetPath(HTREEITEM hTree);
 	void DeleteTreeItem(HTREEITEM hTree);
@@ -81,6 +76,8 @@ public:
 	afx_msg void OnDownloadFile();
 	afx_msg void OnDeleteFile();
 	afx_msg void OnRunFile();
-	afx_msg LRESULT OnSendPacket(WPARAM wParam, LPARAM lParam);
+	//afx_msg LRESULT OnSendPacket(WPARAM wParam, LPARAM lParam);
 	afx_msg void OnBnClickedBtnStartWatch();
+	afx_msg void OnIpnFieldchangedIpaddressServ(NMHDR* pNMHDR, LRESULT* pResult);
+	afx_msg void OnEnChangeEditPort();
 };

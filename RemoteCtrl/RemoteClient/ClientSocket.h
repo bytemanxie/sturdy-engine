@@ -86,7 +86,7 @@ public:
 	int Size() {//包数据的大小
 		return nLength + 6;
 	}
-	const char* Data() {
+	const char* Data(std::string& strOut) const {
 		strOut.resize(nLength + 6);
 		BYTE* pData = (BYTE*)strOut.c_str();
 		*(WORD*)pData = sHead; pData += 2;
@@ -102,7 +102,7 @@ public:
 	WORD sCmd;//控制命令
 	std::string strData;//包数据
 	WORD sSum;//和校验
-	std::string strOut;//整个包的数据
+	//std::string strOut;//整个包的数据
 };
 
 typedef struct file_info {
@@ -148,7 +148,7 @@ public:
 		return m_instance;
 	}
 
-	bool InitSocket(int nIP, int nPort)
+	bool InitSocket()
 	{
 		if (m_sock != INVALID_SOCKET) CloseSocket();
 		m_sock = socket(PF_INET, SOCK_STREAM, 0);
@@ -156,8 +156,8 @@ public:
 		sockaddr_in serv_addr;
 		memset(&serv_addr, 0, sizeof serv_addr);
 		serv_addr.sin_family = AF_INET;
-		serv_addr.sin_addr.s_addr = htonl(nIP);
-		serv_addr.sin_port = htons(nPort);
+		serv_addr.sin_addr.s_addr = htonl(m_nIp);
+		serv_addr.sin_port = htons(m_nPort);
 
 		if (serv_addr.sin_addr.s_addr == INADDR_NONE)
 		{
@@ -213,10 +213,12 @@ public:
 		return send(m_sock, pData, nSize, 0) > 0;
 	}
 
-	bool Send(CPacket& pack) {
+	bool Send(const CPacket& pack) {
 		if (m_sock == -1)return false;
 		//Dump((BYTE*)pack.Data(), pack.Size());
-		return send(m_sock, pack.Data(), pack.Size(), 0) > 0;
+		std::string strOut;
+		pack.Data(strOut);
+		return send(m_sock, strOut.c_str(), strOut.size(), 0) > 0;
 	}
 
 	bool GetFilePath(std::string& strPath)
@@ -251,7 +253,14 @@ public:
 		m_sock = INVALID_SOCKET;
 	}
 
+	void UpdataAddress(int nIP, int nPort)
+	{
+		m_nIp = nIP;
+		m_nPort = nPort;
+	}
+
 private:
+	int m_nIp, m_nPort;
 	std::vector<char> m_buffer;
 	SOCKET m_sock;
 	CPacket m_packet;
@@ -263,8 +272,11 @@ private:
 	CClientSocket(const CClientSocket& ss)
 	{
 		m_sock = ss.m_sock;
+		m_nIp = ss.m_nIp;
+		m_nPort = ss.m_nPort;
 	}
-	CClientSocket()
+	CClientSocket():
+		m_nIp(INADDR_ANY), m_nPort(0)
 	{
 		m_sock = INVALID_SOCKET;
 		if (InitSockEnv() == FALSE)
