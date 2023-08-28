@@ -5,7 +5,9 @@
 #include <Windows.h>
 
 std::map<UINT, CClientController::MSGFUNC> CClientController::m_mapFunc;
-CClientController* CClientController::m_instance;
+CClientController* CClientController::m_instance = NULL;
+
+CClientController::CHelper CClientController::m_helper;
 
 CClientController* CClientController::getInstance()
 {
@@ -26,7 +28,7 @@ CClientController* CClientController::getInstance()
 		}
 
 	}
-	return nullptr;
+	return m_instance;
 }
 
 
@@ -57,13 +59,52 @@ LRESULT CClientController::SendMessage(MSG msg)
 	return info.result;
 }
 
+int CClientController::SendCommandPacket(int nCmd, bool bAutoClose, BYTE* pData, size_t nLength)
+{
+	SendPacket(CPacket(nCmd, pData, nLength));
+	int cmd = DealCommand();
+	TRACE("ack: %d\r\n", cmd);
+	if (bAutoClose)
+		CloseSocket();
+	return cmd;
+}
+
+int CClientController::DownFile(CString strPath)
+{
+	CFileDialog dlg(FALSE, NULL, strPath, OFN_READONLY |
+		OFN_OVERWRITEPROMPT, NULL, &m_remoteDlg);
+
+	if (dlg.DoModal() == IDOK)
+	{
+		m_strRemote = strPath;
+		m_strLocal = dlg.GetPathName();
+
+		m_hThreadDownload = (HANDLE)_beginthread(CClientController::threadDownloadEntry
+			, 0, this);
+
+		if (WaitForSingleObject(m_hThreadDownload, 0) != WAIT_TIMEOUT)
+		{
+			return -1;
+		}
+
+		m_remoteDlg.BeginWaitCursor();
+		m_statusDlg.m_info.SetWindowText(_T("命令正在执行中！"));
+		m_statusDlg.ShowWindow(SW_SHOW);
+		m_statusDlg.CenterWindow(&m_remoteDlg);
+		m_statusDlg.SetActiveWindow();
+	}
+	//_beginthread(CRemoteClientDlg::threadEntryForDownFile, 0, this);
+
+	return 0;
+}
+
 void CClientController::StartWatchScreen()
 {
 	m_isClosed = false;
-	CWatchDialog dlg(&m_remoteDlg);
+	//m_watchDlg.SetParent(&m_remoteDlg);
 	m_hThreadWatch = (HANDLE)_beginthread(
 		CClientController::threadWatchScreen, 0, this);
-	dlg.DoModal();
+	m_watchDlg.DoModal();
 	m_isClosed = true;
 	WaitForSingleObject(m_hThreadWatch, 500);//防止多次打开，启用多个线程进行收发图片
 }
@@ -73,7 +114,7 @@ void CClientController::threadWatchScreen()
 	Sleep(50);
 	while (!m_isClosed)
 	{
-		if (m_remoteDlg.isFull() == false)
+		if (m_watchDlg.isFull() == false)
 		{
 			int ret = SendCommandPacket(6);
 
@@ -81,7 +122,7 @@ void CClientController::threadWatchScreen()
 			{
 	
 				if (GetImage(m_remoteDlg.GetImage()) == 0) {
-					m_remoteDlg.SetImageStatus(true);
+					m_watchDlg.SetImageStatus(true);
 				}
 				else
 				{

@@ -188,15 +188,16 @@ public:
 			return -2;
 		}
 		//memset(buffer, 0, BUFFER_SIZE);
-		static size_t index = 0;
+		static int index = 0;
 		while (true) {
 			size_t len = recv(m_sock, buffer + index, BUFFER_SIZE - index, 0);
-			if (len <= 0 && (index == 0)) { // recv没有文件但是缓冲区可能还有
+			if ((int)len <= 0 && ((int)index == 0)) { // recv没有文件但是缓冲区可能还有
 				return -1;
 			}
-			//TRACE("recv %d\r\n", len);
+			TRACE("recv len = %d(0x%08X) index = %d(0x%08x)\r\n", len, len, index, index);
 			index += len;
 			len = index;
+			TRACE("recv len = %d(0x%08X) index = %d(0x%08x)\r\n", len, len, index, index);
 			m_packet = CPacket((BYTE*)buffer, len);
 			if (len > 0) {
 				memmove(buffer, buffer + len, index - len);

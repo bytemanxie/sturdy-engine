@@ -327,7 +327,6 @@ BOOL CRemoteClientDlg::OnInitDialog()
 	UpdateData(FALSE);//当bSave为FALSE时，函数将从数据成员中读取数据，并将其显示到窗口控件上。
 	m_dlgStatus.Create(IDD_DLG_STATUS, this);
 	m_dlgStatus.ShowWindow(SW_HIDE);
-	m_isFull = false;
 
 	return TRUE;  // return TRUE  unless you set the focus to a control
 }

@@ -23,21 +23,16 @@ public:
 	protected:
 	virtual void DoDataExchange(CDataExchange* pDX);	// DDX/DDV support
 public:
-	bool isFull() const {
-		return m_isFull;
-	}
+	
 
 	CImage& GetImage()
 	{
 		return m_image;
 	}
-	void SetImageStatus(bool isFull = false)
-	{
-		m_isFull = isFull;
-	}
+	
 private:
 	CImage m_image;//缓存
-	bool m_isFull;//缓存是否有数据
+	
 	bool m_isClosed;//监视是否关闭
 private:
 	/*static void threadEntryForWatchData(void* arg);
