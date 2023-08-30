@@ -24,14 +24,8 @@ public:
 	virtual void DoDataExchange(CDataExchange* pDX);	// DDX/DDV support
 public:
 	
-
-	CImage& GetImage()
-	{
-		return m_image;
-	}
-	
 private:
-	CImage m_image;//缓存
+	
 	
 	bool m_isClosed;//监视是否关闭
 private:

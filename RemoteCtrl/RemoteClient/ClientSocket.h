@@ -178,8 +178,6 @@ public:
 			TRACE("连接失败：%d %s\r\n", WSAGetLastError(), GetErrInfo(WSAGetLastError()).c_str());
 			return false;
 		}
-
-
 		return true;
 	}
 
@@ -214,20 +212,10 @@ public:
 		return -1;
 	}
 
-	bool Send(const char* pData, int nSize)
-	{
-		if (m_sock == -1)return false;
-		return send(m_sock, pData, nSize, 0) > 0;
-	}
-
-	bool Send(const CPacket& pack) {
-		if (m_sock == -1)return false;
-		//Dump((BYTE*)pack.Data(), pack.Size());
-		std::string strOut;
-		pack.Data(strOut);
-		return send(m_sock, strOut.c_str(), strOut.size(), 0) > 0;
-	}
-
+	bool SendPacket(const CPacket& pack, std::list<CPacket>& lstPacks,
+		bool isAutoClosed = true);
+	
+	
 	bool GetFilePath(std::string& strPath)
 	{
 		if ((m_packet.sCmd >= 2) && (m_packet.sCmd <= 4))
@@ -262,17 +250,31 @@ public:
 
 	void UpdataAddress(int nIP, int nPort)
 	{
-		m_nIp = nIP;
-		m_nPort = nPort;
+		if ((m_nIp != nIP) || (m_nPort != nPort))
+		{
+			m_nIp = nIP;
+			m_nPort = nPort;
+	
+		}
+	
 	}
 
 private:
+	bool m_bAutoClose;
 	std::list<CPacket> m_lstSend;
 	std::map<HANDLE, std::list<CPacket>> m_mapAck;
+	std::map<HANDLE, bool> m_mapAutoClosed;
 	int m_nIp, m_nPort;
 	std::vector<char> m_buffer;
 	SOCKET m_sock;
 	CPacket m_packet;
+	bool Send(const char* pData, int nSize)
+	{
+		if (m_sock == -1)return false;
+		return send(m_sock, pData, nSize, 0) > 0;
+	}
+
+	bool Send(const CPacket& pack);
 	CClientSocket& operator=(const CClientSocket& ss)
 	{
 
@@ -280,14 +282,14 @@ private:
 
 	CClientSocket(const CClientSocket& ss)
 	{
+		m_bAutoClose = ss.m_bAutoClose;
 		m_sock = ss.m_sock;
 		m_nIp = ss.m_nIp;
 		m_nPort = ss.m_nPort;
 	}
 	CClientSocket():
-		m_nIp(INADDR_ANY), m_nPort(0)
+		m_nIp(INADDR_ANY), m_nPort(0), m_sock(INVALID_SOCKET), m_bAutoClose(true)
 	{
-		m_sock = INVALID_SOCKET;
 		if (InitSockEnv() == FALSE)
 		{
 			MessageBox(NULL, _T("无法初始化套接字环境, 请检查网络设置！"), _T("初始化错误！"), MB_OK | MB_ICONERROR);//text, caption
@@ -295,6 +297,7 @@ private:
 		}
 		m_buffer.resize(BUFFER_SIZE);
 		memset((char*)m_buffer.data(), 0, BUFFER_SIZE);
+		
 	}
 	~CClientSocket()
 	{

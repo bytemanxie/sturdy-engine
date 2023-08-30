@@ -38,13 +38,6 @@ public:
 		CClientSocket::getInstance()->CloseSocket();
 	}
 
-	bool SendPacket(const CPacket& pack)
-	{
-		CClientSocket* pClient = CClientSocket::getInstance();
-		if (pClient->InitSocket() == false) return false;
-		pClient->Send(pack);
-		return true;
-	}
 
 	//1 查看磁盘分区 2 查看指定目录下的文件 3 打开文件
 	//4 下载文件 5 鼠标操作 6 发送屏幕内容
@@ -53,7 +46,7 @@ public:
 	//成功返回命令号， 内部调用了dealcommand
 	//失败返回-1，nLength为发送数据的长度
 	int SendCommandPacket(int nCmd, bool bAutoClose = true,
-		BYTE* pData = NULL, size_t nLength = 0);
+		BYTE* pData = NULL, size_t nLength = 0, std::list<CPacket>* plstPacks = NULL);
 
 
 	//将字节流转换为图像
@@ -95,8 +88,8 @@ protected:
 			m_instance = NULL;
 		}
 	}
-	LRESULT OnSendPack(UINT nMsg, WPARAM wParam, LPARAM lParam);
-	LRESULT OnSendData(UINT nMsg, WPARAM wParam, LPARAM lParam);
+	/*LRESULT OnSendPack(UINT nMsg, WPARAM wParam, LPARAM lParam);*/
+	//LRESULT OnSendData(UINT nMsg, WPARAM wParam, LPARAM lParam);
 	LRESULT OnSendStatus(UINT nMsg, WPARAM wParam, LPARAM lParam);
 	LRESULT OnSendWatcher(UINT nMsg, WPARAM wParam, LPARAM lParam);
 private:

@@ -16,14 +16,16 @@ public:
 	enum { IDD = IDD_DLG_WATCH };
 #endif
 public:
+	CImage& GetImage()
+	{
+		return m_image;
+	}
 	int m_nObjWidth;
 	int m_nObjHeight;
+	CImage m_image;//缓存
 protected:
 	
 	virtual void DoDataExchange(CDataExchange* pDX);    // DDX/DDV 支持
-
-	
-
 	DECLARE_MESSAGE_MAP()
 public:
 	bool m_isFull;//缓存是否有数据
