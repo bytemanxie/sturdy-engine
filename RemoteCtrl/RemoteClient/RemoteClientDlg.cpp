@@ -202,39 +202,38 @@ void CRemoteClientDlg::LoadFileInfo()
 	DeleteTreeItem(hTreeSelected);
 	m_List.DeleteAllItems();
 	CString strPath = GetPath(hTreeSelected);
+	std::list<CPacket> lstPackets;
 	int nCmnd = CClientController::getInstance()->SendCommandPacket(2, false, 
-		(BYTE*)(LPCTSTR)strPath, strPath.GetLength());
-
-	PFILEINFO pInfo = (PFILEINFO)CClientSocket::getInstance()->GetPacket().strData.c_str();
-
-	int cout = 0;
-
-	while (pInfo->HasNext) { //文件还有下一个文件，找下一个文件
-		if (pInfo->IsDirectory)
+		(BYTE*)(LPCTSTR)strPath, strPath.GetLength(), &lstPackets);
+	if (lstPackets.size() > 0)
+	{
+		std::list<CPacket>::iterator it = lstPackets.begin();
+		for (; it != lstPackets.end(); it++)
 		{
-			if (CString(pInfo->szFileName) == "." || (CString(pInfo->szFileName) == ".."))
+			PFILEINFO pInfo = 
+				(PFILEINFO)CClientSocket::getInstance()->GetPacket().strData.c_str();
+			if (pInfo->HasNext == FALSE) continue;//文件还有下一个文件，找下一个文件
+			if (pInfo->IsDirectory)
 			{
-				int cmd = CClientController::getInstance()->DealCommand();
-				//TRACE("ack:%d\r\n", cmd);
-				if (cmd < 0) break;
-				pInfo = (PFILEINFO)CClientSocket::getInstance()->GetPacket().strData.c_str();
-				continue;
+				if (CString(pInfo->szFileName) == "." || (CString(pInfo->szFileName) == ".."))
+				{
+					continue;
+				}
+				HTREEITEM hTemp = m_Tree.InsertItem(pInfo->szFileName, hTreeSelected, TVI_LAST);
+				m_Tree.InsertItem("", hTemp, TVI_LAST);
 			}
-			HTREEITEM hTemp = m_Tree.InsertItem(pInfo->szFileName, hTreeSelected, TVI_LAST);
-			m_Tree.InsertItem("", hTemp, TVI_LAST);
+			else
+			{
+				m_List.InsertItem(0, pInfo->szFileName);
+			}
+
+			//int cmd = CClientController::getInstance()->DealCommand();
+			////TRACE("ack: %d\r\n", cmd);
+			//if (cmd < 0) break;
+			//pInfo = (PFILEINFO)CClientSocket::getInstance()->GetPacket().strData.c_str();
 		}
-		else
-		{
-			m_List.InsertItem(0, pInfo->szFileName);
-		}
-		cout++;
-		int cmd = CClientController::getInstance()->DealCommand();
-		//TRACE("ack: %d\r\n", cmd);
-		if (cmd < 0) break;
-		pInfo = (PFILEINFO)CClientSocket::getInstance()->GetPacket().strData.c_str();
 	}
-	TRACE("CLIENT cout = %d\r\n", cout);
-	CClientController::getInstance()->CloseSocket();
+	//CClientController::getInstance()->CloseSocket();
 }
 
 void CRemoteClientDlg::LoadFileCurrent()
@@ -246,20 +245,18 @@ void CRemoteClientDlg::LoadFileCurrent()
 	int nCmnd = CClientController::getInstance()->SendCommandPacket(2, false, 
 		(BYTE*)(LPCTSTR)strPath, strPath.GetLength());
 	PFILEINFO pInfo = (PFILEINFO)CClientSocket::getInstance()->GetPacket().strData.c_str();
-	CClientSocket* pClient = CClientSocket::getInstance();
+	
 
 	while (pInfo->HasNext) {
 		if (!pInfo->IsDirectory)
 		{
 			m_List.InsertItem(0, pInfo->szFileName);
 		}
-		int cmd = pClient->DealCommand();
+		int cmd = CClientController::getInstance()->DealCommand();
 		TRACE("ack: %d\r\n", cmd);
 		if (cmd < 0) break;
 		pInfo = (PFILEINFO)CClientSocket::getInstance()->GetPacket().strData.c_str();
 	}
-
-	pClient->CloseSocket();
 }
 
 
@@ -392,15 +389,18 @@ void CRemoteClientDlg::OnBnClickedBtnTest()
 void CRemoteClientDlg::OnBnClickedBtnFileinfo()
 {
 	// TODO: 在此添加控件通知处理程序代码
-	int ret = CClientController::getInstance()->SendCommandPacket(1);
+	std::list<CPacket> lstPackets;
+	int ret = CClientController::getInstance()->SendCommandPacket(1, 
+		true, NULL, 0, &lstPackets);
 	TRACE("ret = %d\r\n", ret);
-	if (ret == -1)
+	if (ret == -1 || (lstPackets.size() <= 0))
 	{
 		AfxMessageBox(_T("命令处理失败！！！"));
 		return;
 	}
-	CClientSocket* pClient = CClientSocket::getInstance();
-	std::string drivers = pClient->GetPacket().strData;
+	CPacket& head = lstPackets.front();
+
+	std::string drivers = head.strData;
 	std::string dr;
 	m_Tree.DeleteAllItems();
 	for (size_t i = 0; i < drivers.size(); i++)
