@@ -63,8 +63,6 @@ bool CClientSocket::SendPacket(const CPacket& pack,
 	m_mapAutoClosed.insert(std::pair<HANDLE, bool>(pack.hEvent, isAutoClosed));
 	TRACE("cmd: %d event: %08X thread id: %d\r\n", 
 		pack.sCmd, pack.hEvent, GetCurrentThreadId());
-
-	
 	m_lstSend.push_back(pack);
 	m_lock.unlock();
 

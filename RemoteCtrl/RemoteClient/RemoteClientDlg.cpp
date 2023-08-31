@@ -211,8 +211,7 @@ void CRemoteClientDlg::LoadFileInfo()
 		for (; it != lstPackets.end(); it++)
 		{
 			PFILEINFO pInfo = 
-				(PFILEINFO)CClientSocket::getInstance()->GetPacket().strData.c_str();
-			if (pInfo->HasNext == FALSE) continue;//文件还有下一个文件，找下一个文件
+				(PFILEINFO)(*it).strData.c_str();
 			if (pInfo->IsDirectory)
 			{
 				if (CString(pInfo->szFileName) == "." || (CString(pInfo->szFileName) == ".."))
@@ -226,7 +225,7 @@ void CRemoteClientDlg::LoadFileInfo()
 			{
 				m_List.InsertItem(0, pInfo->szFileName);
 			}
-
+			if (pInfo->HasNext == FALSE) continue;//文件还有下一个文件，找下一个文件
 			//int cmd = CClientController::getInstance()->DealCommand();
 			////TRACE("ack: %d\r\n", cmd);
 			//if (cmd < 0) break;
