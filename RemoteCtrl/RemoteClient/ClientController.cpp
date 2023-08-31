@@ -60,6 +60,7 @@ LRESULT CClientController::SendMessage(MSG msg)
 	return info.result;
 }
 
+//plstPacks为应答结果包列表
 int CClientController::SendCommandPacket(int nCmd, bool bAutoClose, 
 	BYTE* pData, size_t nLength, std::list<CPacket>* plstPacks)
 {

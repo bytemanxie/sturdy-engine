@@ -55,7 +55,12 @@ END_MESSAGE_MAP()
 CPoint CWatchDialog::UserPoint2RemoteScreenPoint(CPoint& point, bool isScreen)
 {
 	CRect clientRect;
-	if(isScreen) ScreenToClient(&point);
+	if(isScreen) m_picture.ScreenToClient(&point);//全局坐标到客户区域坐标
+	else
+	{
+		ClientToScreen(&point);//转换为相对屏幕左上角的坐标（屏幕的绝对坐标）
+		m_picture.ScreenToClient(&point);//转换为客户区域坐标（相对picture控件左上角坐标）
+	}
 	m_picture.GetWindowRect(clientRect);
 	int width0 = clientRect.Width();
 	int height0 = clientRect.Height();
@@ -230,7 +235,6 @@ void CWatchDialog::OnMouseMove(UINT nFlags, CPoint point)
 		event.nAction = 0;
 		CClientController::getInstance()->SendCommandPacket(5, true, (BYTE*)&event, sizeof event);
 	}
-	
 
 	CDialogEx::OnMouseMove(nFlags, point);
 }
