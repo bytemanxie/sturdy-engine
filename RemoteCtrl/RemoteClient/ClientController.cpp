@@ -60,27 +60,22 @@ LRESULT CClientController::SendMessage(MSG msg)
 	return info.result;
 }
 
-//plstPacks为应答结果包列表
-int CClientController::SendCommandPacket(int nCmd, bool bAutoClose, 
-	BYTE* pData, size_t nLength, std::list<CPacket>* plstPacks)
+
+bool CClientController::SendCommandPacket(HWND hWnd, int nCmd, bool bAutoClose, 
+	BYTE* pData, size_t nLength, WPARAM wParam)
 {
 	TRACE("cmd:%d %s start %lld \r\n", nCmd, __FUNCTION__, GetTickCount64());
 	CClientSocket* pClient = CClientSocket::getInstance();
+	
+	return pClient->SendPacket(hWnd, CPacket(nCmd, pData, nLength), bAutoClose, wParam);
 
-	HANDLE hEvent = CreateEvent(NULL, TRUE, FALSE, NULL);
-	//TODO: 不应该直接发送，而是投入队列
-	std::list<CPacket> lstPacks;//应答结果包
-	if (plstPacks == NULL) 
-		plstPacks = &lstPacks;
+}
 
-	pClient->SendPacket(CPacket(nCmd, pData, nLength, hEvent), *plstPacks, bAutoClose);
-	CloseHandle(hEvent);//回收事件句柄，防止资源耗尽
-	if (plstPacks->size() > 0)
-	{
-		return plstPacks->front().sCmd;
-	}
-
-	return -1;
+void CClientController::DownloadEnd()
+{
+	m_statusDlg.ShowWindow(SW_HIDE);
+	m_remoteDlg.EndWaitCursor();
+	m_remoteDlg.MessageBox( _T("下载完成"), _T("完成"));
 }
 
 int CClientController::DownFile(CString strPath)
@@ -92,14 +87,21 @@ int CClientController::DownFile(CString strPath)
 	{
 		m_strRemote = strPath;
 		m_strLocal = dlg.GetPathName();
-
-		m_hThreadDownload = (HANDLE)_beginthread(CClientController::threadDownloadEntry
-			, 0, this);
-
-		if (WaitForSingleObject(m_hThreadDownload, 0) != WAIT_TIMEOUT)
+		FILE* pFile = fopen(m_strLocal, "wb+");
+		if (pFile == NULL)
 		{
+			AfxMessageBox(_T("本地没有权限保存该文件， 或者无法创建！！！"));
 			return -1;
 		}
+		SendCommandPacket(m_remoteDlg, 4, false,
+			(BYTE*)(LPCSTR)m_strRemote, m_strRemote.GetLength(), (WPARAM)pFile);
+		/*m_hThreadDownload = (HANDLE)_beginthread(CClientController::threadDownloadEntry
+			, 0, this);*/
+
+		/*if (WaitForSingleObject(m_hThreadDownload, 0) != WAIT_TIMEOUT)
+		{
+			return -1;
+		}*/
 
 		m_remoteDlg.BeginWaitCursor();
 		m_statusDlg.m_info.SetWindowText(_T("命令正在执行中！"));
@@ -131,7 +133,9 @@ void CClientController::threadWatchScreen()
 		if (m_watchDlg.isFull() == false)
 		{
 			std::list<CPacket> lstPacks;
-			int ret = SendCommandPacket(6, true, NULL, 0, &lstPacks);
+			int ret = SendCommandPacket(m_watchDlg.GetSafeHwnd(), 6, true, NULL, 0);
+			//TODO:添加消息响应函数WM_SEND_PACK_ACK
+			//控制发送频率
 
 			if (ret == 6)
 			{
@@ -176,8 +180,8 @@ void CClientController::threadDownloadFile()
 	}
 	CClientSocket* pClient = CClientSocket::getInstance();
 	do {
-		int ret = SendCommandPacket(4, false,
-			(BYTE*)(LPCSTR)m_strRemote, m_strRemote.GetLength());
+		int ret = SendCommandPacket(m_remoteDlg, 4, false,
+			(BYTE*)(LPCSTR)m_strRemote, m_strRemote.GetLength(), (WPARAM)pFile);
 
 		if (ret < 0)
 		{
@@ -216,7 +220,7 @@ void CClientController::threadDownloadFile()
 	pClient->CloseSocket();
 	m_statusDlg.ShowWindow(SW_HIDE);
 	m_remoteDlg.EndWaitCursor();
-	MessageBox(nullptr, _T("下载完成"), _T("完成"), MB_OK);
+	m_remoteDlg.MessageBox(_T("下载完成"), _T("完成"));
 }
 
 void CClientController::threadDownloadEntry(void* arg)

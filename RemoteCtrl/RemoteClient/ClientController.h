@@ -43,10 +43,14 @@ public:
 	//4 下载文件 5 鼠标操作 6 发送屏幕内容
 	//7 锁机 8 解锁 9 删除文件
 	//1981 测试连接
-	//成功返回命令号， 内部调用了dealcommand
-	//失败返回-1，nLength为发送数据的长度
-	int SendCommandPacket(int nCmd, bool bAutoClose = true,
-		BYTE* pData = NULL, size_t nLength = 0, std::list<CPacket>* plstPacks = NULL);
+	//返回值：状态 true成功 false 失败
+	bool SendCommandPacket(
+		HWND hWnd,//数据包收到后，需要应答的窗口
+		int nCmd
+		, bool bAutoClose = true,
+		BYTE* pData = NULL, 
+		size_t nLength = 0,
+		WPARAM wParam = 0);
 
 
 	//将字节流转换为图像
@@ -56,6 +60,7 @@ public:
 		return CEdoyunTool::Bytes2Image(image, pClient->GetPacket().strData);
 	}
 
+	void DownloadEnd();
 	int DownFile(CString strPath);
 	
 	void StartWatchScreen();

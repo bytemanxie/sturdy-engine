@@ -203,8 +203,8 @@ void CRemoteClientDlg::LoadFileInfo()
 	m_List.DeleteAllItems();
 	CString strPath = GetPath(hTreeSelected);
 	std::list<CPacket> lstPackets;
-	int nCmnd = CClientController::getInstance()->SendCommandPacket(2, false, 
-		(BYTE*)(LPCTSTR)strPath, strPath.GetLength(), &lstPackets);
+	int nCmnd = CClientController::getInstance()->SendCommandPacket(GetSafeHwnd(), 2, false,
+		(BYTE*)(LPCTSTR)strPath, strPath.GetLength(), (WPARAM)hTreeSelected);
 
 	if (lstPackets.size() > 0)
 	{
@@ -228,10 +228,6 @@ void CRemoteClientDlg::LoadFileInfo()
 				m_List.InsertItem(0, pInfo->szFileName);
 			}
 			if (pInfo->HasNext == FALSE) continue;//文件还有下一个文件，找下一个文件
-			//int cmd = CClientController::getInstance()->DealCommand();
-			////TRACE("ack: %d\r\n", cmd);
-			//if (cmd < 0) break;
-			//pInfo = (PFILEINFO)CClientSocket::getInstance()->GetPacket().strData.c_str();
 		}
 	}
 	//CClientController::getInstance()->CloseSocket();
@@ -243,8 +239,8 @@ void CRemoteClientDlg::LoadFileCurrent()
 	CString strPath = GetPath(hTree);
 
 	m_List.DeleteAllItems();
-	int nCmnd = CClientController::getInstance()->SendCommandPacket(2, false, 
-		(BYTE*)(LPCTSTR)strPath, strPath.GetLength());
+	int nCmnd = CClientController::getInstance()->SendCommandPacket(GetSafeHwnd(), 2, false,
+		(BYTE*)(LPCTSTR)strPath);
 	PFILEINFO pInfo = (PFILEINFO)CClientSocket::getInstance()->GetPacket().strData.c_str();
 	
 
@@ -281,6 +277,7 @@ BEGIN_MESSAGE_MAP(CRemoteClientDlg, CDialogEx)
 	ON_WM_TIMER()
 	ON_NOTIFY(IPN_FIELDCHANGED, IDC_IPADDRESS_SERV, &CRemoteClientDlg::OnIpnFieldchangedIpaddressServ)
 	ON_EN_CHANGE(IDC_EDIT_PORT, &CRemoteClientDlg::OnEnChangeEditPort)
+	ON_MESSAGE(WM_SEND_PACK_ACK, &CRemoteClientDlg::OnSendPackAck)
 END_MESSAGE_MAP()
 
 
@@ -382,7 +379,7 @@ HCURSOR CRemoteClientDlg::OnQueryDragIcon()
 
 void CRemoteClientDlg::OnBnClickedBtnTest()
 {
-	int ret = CClientController::getInstance()->SendCommandPacket(1981);
+	int ret = CClientController::getInstance()->SendCommandPacket(GetSafeHwnd(), 1981);
 	TRACE("ret = %d\r\n", ret);
 }
 
@@ -391,30 +388,15 @@ void CRemoteClientDlg::OnBnClickedBtnFileinfo()
 {
 	// TODO: 在此添加控件通知处理程序代码
 	std::list<CPacket> lstPackets;
-	int ret = CClientController::getInstance()->SendCommandPacket(1, 
-		true, NULL, 0, &lstPackets);
+	int ret = CClientController::getInstance()->SendCommandPacket(GetSafeHwnd(), 1,
+		true, NULL, 0);
 	TRACE("ret = %d\r\n", ret);
-	if (ret == -1 || (lstPackets.size() <= 0))
+	if (ret == 0)
 	{
 		AfxMessageBox(_T("命令处理失败！！！"));
 		return;
 	}
-	CPacket& head = lstPackets.front();
-
-	std::string drivers = head.strData;
-	std::string dr;
-	m_Tree.DeleteAllItems();
-	for (size_t i = 0; i < drivers.size(); i++)
-	{
-		if (drivers[i] != ',')
-		{
-			dr = drivers[i];
-			dr += ':';
-			HTREEITEM hTemp = m_Tree.InsertItem(dr.c_str(), TVI_ROOT, TVI_LAST);
-			m_Tree.InsertItem(NULL, hTemp, TVI_LAST);
-			dr.clear();
-		}
-	}
+	
 }
 
 
@@ -507,7 +489,8 @@ void CRemoteClientDlg::OnDeleteFile()
 	CString strFile = m_List.GetItemText(nSelected, 0);
 
 	strFile = strPath + strFile;
-	int ret = CClientController::getInstance()->SendCommandPacket(9, true, (BYTE*)(LPCSTR)strFile, strFile.GetLength());
+	int ret = CClientController::getInstance()->SendCommandPacket(GetSafeHwnd(), 9, true, 
+		(BYTE*)(LPCSTR)strFile, strFile.GetLength());
 	if (ret < 0)
 	{
 		AfxMessageBox("删除文件命令执行失败 ！！！");
@@ -525,7 +508,7 @@ void CRemoteClientDlg::OnRunFile()
 	CString strFile = m_List.GetItemText(nSelected, 0);
 
 	strFile = strPath + strFile;
-	int ret = CClientController::getInstance()->SendCommandPacket(3, true, 
+	int ret = CClientController::getInstance()->SendCommandPacket(GetSafeHwnd(), 3, true,
 		(BYTE*)(LPCSTR)strFile, strFile.GetLength());
 	if (ret < 0)
 	{
@@ -601,4 +584,108 @@ void CRemoteClientDlg::OnEnChangeEditPort()
 	UpdateData();
 	CClientController* pController = CClientController::getInstance();
 	pController->UpdateAddress(m_server_address, atoi((LPCTSTR)m_nPort));
+}
+
+LRESULT CRemoteClientDlg::OnSendPackAck(WPARAM wParam, LPARAM lParam)
+{
+	if (lParam == 0)
+	{
+		CPacket* pPacket = (CPacket*)wParam;
+		CPacket& head = *pPacket;
+		if (pPacket != NULL)
+		{
+			switch (pPacket->sCmd)
+			{
+			case 1://获取驱动信息
+			{
+				std::string drivers = head.strData;
+				std::string dr;
+				m_Tree.DeleteAllItems();
+				for (size_t i = 0; i < drivers.size(); i++)
+				{
+					if (drivers[i] != ',')
+					{
+						dr = drivers[i];
+						dr += ':';
+						HTREEITEM hTemp = m_Tree.InsertItem(dr.c_str(), TVI_ROOT, TVI_LAST);
+						m_Tree.InsertItem(NULL, hTemp, TVI_LAST);
+						dr.clear();
+					}
+				}
+				
+			}
+			break;
+			case 2://获取文件信息
+			{
+				PFILEINFO pInfo = (PFILEINFO)head.strData.c_str();
+				if (pInfo->HasNext == FALSE) break;
+				if (pInfo->IsDirectory)
+				{
+					if (CString(pInfo->szFileName) == "." || (CString(pInfo->szFileName) == ".."))
+					{
+						break;
+					}
+					HTREEITEM hTemp = m_Tree.InsertItem(pInfo->szFileName, (HTREEITEM)lParam, TVI_LAST);
+					m_Tree.InsertItem("", hTemp, TVI_LAST);
+				}
+				else
+				{
+					m_List.InsertItem(0, pInfo->szFileName);
+				}
+				
+			}
+			break;
+			case 3:
+				TRACE("run file done!\r\n");
+				break;
+			case 4:
+			{
+				static LONGLONG length = 0, index = 0;
+				if (length == 0)
+				{
+					length = *(long long*)head.strData.c_str();
+					if (length == 0)
+					{
+						AfxMessageBox(_T("本地没有权限保存该文件， 或者无法创建！！！"));
+						CClientController::getInstance()->DownloadEnd();
+						
+						break;
+					}
+				}
+				else if (length > 0 && (index >= length))
+				{
+					fclose((FILE*)lParam);
+					length = 0;
+					index = 0;
+					CClientController::getInstance()->DownloadEnd();
+				}
+				else
+				{
+					FILE* pFile = (FILE*)lParam;
+					fwrite(head.strData.c_str(), 1, head.strData.size(), pFile);
+					index += head.strData.size();
+				}
+			}
+				break;
+			case 9:
+				TRACE("delete file done!\r\n");
+				break;
+			case 1981:
+				TRACE("test connection success!\r\n");
+				break;
+			default:
+				TRACE("unknow data recevied! %d\r\n", head.sCmd);
+				break;
+			}
+		}
+	}
+	else if (lParam < 0)
+	{
+
+	}
+	else if (lParam > 0)
+	{
+
+	}
+	return 0;
 }
