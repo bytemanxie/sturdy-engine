@@ -200,37 +200,12 @@ void CRemoteClientDlg::LoadFileInfo()
 	if (m_Tree.GetChildItem(hTreeSelected) == NULL) return;
 	
 	DeleteTreeItem(hTreeSelected);
-	m_List.DeleteAllItems();
+
 	CString strPath = GetPath(hTreeSelected);
 	std::list<CPacket> lstPackets;
-	int nCmnd = CClientController::getInstance()->SendCommandPacket(GetSafeHwnd(), 2, false,
+	CClientController::getInstance()->SendCommandPacket(GetSafeHwnd(), 2, false,
 		(BYTE*)(LPCTSTR)strPath, strPath.GetLength(), (WPARAM)hTreeSelected);
 
-	if (lstPackets.size() > 0)
-	{
-
-		std::list<CPacket>::iterator it = lstPackets.begin();
-		for (; it != lstPackets.end(); it++)
-		{
-			PFILEINFO pInfo = 
-				(PFILEINFO)(*it).strData.c_str();
-			if (pInfo->IsDirectory)
-			{
-				if (CString(pInfo->szFileName) == "." || (CString(pInfo->szFileName) == ".."))
-				{
-					continue;
-				}
-				HTREEITEM hTemp = m_Tree.InsertItem(pInfo->szFileName, hTreeSelected, TVI_LAST);
-				m_Tree.InsertItem("", hTemp, TVI_LAST);
-			}
-			else
-			{
-				m_List.InsertItem(0, pInfo->szFileName);
-			}
-			if (pInfo->HasNext == FALSE) continue;//文件还有下一个文件，找下一个文件
-		}
-	}
-	//CClientController::getInstance()->CloseSocket();
 }
 
 void CRemoteClientDlg::LoadFileCurrent()
@@ -387,9 +362,9 @@ void CRemoteClientDlg::OnBnClickedBtnTest()
 void CRemoteClientDlg::OnBnClickedBtnFileinfo()
 {
 	// TODO: 在此添加控件通知处理程序代码
-	std::list<CPacket> lstPackets;
+	//std::list<CPacket> lstPackets;
 	int ret = CClientController::getInstance()->SendCommandPacket(GetSafeHwnd(), 1,
-		true, NULL, 0);
+		true, NULL, 0, 0);
 	TRACE("ret = %d\r\n", ret);
 	if (ret == 0)
 	{
@@ -618,6 +593,8 @@ LRESULT CRemoteClientDlg::OnSendPackAck(WPARAM wParam, LPARAM lParam)
 			case 2://获取文件信息
 			{
 				PFILEINFO pInfo = (PFILEINFO)head.strData.c_str();
+				TRACE("hasnext %d isdirectory %d %s\r\n",
+					pInfo->HasNext, pInfo->IsDirectory, pInfo->szFileName);
 				if (pInfo->HasNext == FALSE) break;
 				if (pInfo->IsDirectory)
 				{
@@ -625,6 +602,7 @@ LRESULT CRemoteClientDlg::OnSendPackAck(WPARAM wParam, LPARAM lParam)
 					{
 						break;
 					}
+					TRACE("hselected %08X\r\n", lParam);
 					HTREEITEM hTemp = m_Tree.InsertItem(pInfo->szFileName, (HTREEITEM)lParam, TVI_LAST);
 					m_Tree.InsertItem("", hTemp, TVI_LAST);
 				}

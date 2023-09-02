@@ -65,6 +65,7 @@ public:
 		if (nLength > 4) {
 			strData.resize(nLength - 2 - 2);
 			memcpy((void*)strData.c_str(), pData + i, nLength - 4);
+			TRACE("%s\r\n", strData.c_str() + 12);
 			i += nLength - 4;
 		}
 		sSum = *(WORD*)(pData + i); i += 2;
@@ -138,9 +139,14 @@ typedef struct PacketData {
 	PacketData(const char* pData, size_t nLen, UINT mode, WPARAM nParam = 0)
 	{
 		strData.resize(nLen);
-		memcpy((char*)strData.c_str(), pData, sizeof pData);
+		memcpy((char*)strData.c_str(), pData, nLen);
 		nMode = mode;
 		wParam = nParam;
+
+
+		size_t nTemp = nLen;
+		CPacket current((BYTE*)pData, nTemp);
+
 	}
 	PacketData(const PacketData& data)
 	{

@@ -53,14 +53,19 @@ bool CClientSocket::SendPacket(HWND hWnd, const CPacket& pack, bool isAutoClosed
 	{
 		m_hThread = (HANDLE)_beginthreadex(NULL, 0, &CClientSocket::threadEntry,
 			this, 0, &m_threadID);
-
+		
 	}
+	/*m_hThread = (HANDLE)_beginthreadex(NULL, 0, &CClientSocket::threadEntry,
+		this, 0, &m_threadID);*/
 	UINT nMode = isAutoClosed ? CSM_AUTOCLOSE : 0;
 	std::string strOut;
 	pack.Data(strOut);
+	PACKET_DATA* pData = new PACKET_DATA(strOut.c_str(), strOut.size(), nMode, wParam);
 
+	size_t nTemp = strOut.size();
+	CPacket current((BYTE*)pData->strData.c_str(), nTemp);
 	return PostThreadMessage(m_threadID, WM_SEND_PACK, 
-		(WPARAM)new PACKET_DATA(strOut.c_str(), strOut.size(), nMode, wParam), (LPARAM)hWnd);
+		(WPARAM)pData, (LPARAM)hWnd);
 }
 
 //bool CClientSocket::SendPacket(const CPacket& pack,
@@ -131,6 +136,8 @@ CClientSocket::CClientSocket() :
 		MessageBox(NULL, _T("无法初始化套接字环境, 请检查网络设置！"), _T("初始化错误！"), MB_OK | MB_ICONERROR);//text, caption
 		exit(0);
 	}
+	m_hThread = (HANDLE)_beginthreadex(NULL, 0, &CClientSocket::threadEntry,
+		this, 0, &m_threadID);
 	m_buffer.resize(BUFFER_SIZE);
 	memset((char*)m_buffer.data(), 0, BUFFER_SIZE);
 	struct {
@@ -155,7 +162,9 @@ unsigned CClientSocket::threadEntry(void* arg)
 {
 	CClientSocket* thiz = (CClientSocket*)arg;
 	thiz->threadFunc2();
+	
 	_endthreadex(0);
+	
 	return 0;
 }
 
@@ -266,13 +275,18 @@ void CClientSocket::SendPack(UINT nMsg, WPARAM wParam, LPARAM lParam)
 	delete (PACKET_DATA*)wParam;
 	HWND hWnd = (HWND)lParam;
 
+	size_t nTemp = data.strData.size();
+	CPacket current((BYTE*)data.strData.c_str(), nTemp);
+
+
 	if (InitSocket() == true)
 	{
 		int ret = send(m_sock, (char*)data.strData.c_str(), (int)data.strData.size(), 0);
 		if (ret > 0)
 		{
 			size_t index = 0;
-			std::string strBuffer(BUFFER_SIZE, ' ');
+			std::string strBuffer;
+			strBuffer.resize(BUFFER_SIZE);
 			char* pBuffer = (char*)strBuffer.c_str();
 			
 			while (m_sock != INVALID_SOCKET)
@@ -294,7 +308,7 @@ void CClientSocket::SendPack(UINT nMsg, WPARAM wParam, LPARAM lParam)
 						
 					}
 					index -= nLen;
-					memmove(pBuffer, pBuffer + nLen, index - nLen);
+					memmove(pBuffer, pBuffer + nLen, index);
 				}
 				else
 				{
