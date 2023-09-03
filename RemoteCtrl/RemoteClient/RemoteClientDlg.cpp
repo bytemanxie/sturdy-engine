@@ -202,7 +202,7 @@ void CRemoteClientDlg::LoadFileInfo()
 	DeleteTreeItem(hTreeSelected);
 
 	CString strPath = GetPath(hTreeSelected);
-	std::list<CPacket> lstPackets;
+	TRACE("hTreeSelected %08X\r\n", hTreeSelected);
 	CClientController::getInstance()->SendCommandPacket(GetSafeHwnd(), 2, false,
 		(BYTE*)(LPCTSTR)strPath, strPath.GetLength(), (WPARAM)hTreeSelected);
 
@@ -563,13 +563,22 @@ void CRemoteClientDlg::OnEnChangeEditPort()
 
 LRESULT CRemoteClientDlg::OnSendPackAck(WPARAM wParam, LPARAM lParam)
 {
-	if (lParam == 0)
+	if (lParam == -1 || (lParam == -2))
 	{
-		CPacket* pPacket = (CPacket*)wParam;
-		CPacket& head = *pPacket;
-		if (pPacket != NULL)
+
+	}
+	else if (lParam == 1)
+	{
+
+	}
+	else
+	{
+		if (wParam != NULL)
 		{
-			switch (pPacket->sCmd)
+			CPacket head = *(CPacket*)wParam;
+			delete (CPacket*)wParam;
+
+			switch (head.sCmd)
 			{
 			case 1://获取驱动信息
 			{
@@ -602,9 +611,10 @@ LRESULT CRemoteClientDlg::OnSendPackAck(WPARAM wParam, LPARAM lParam)
 					{
 						break;
 					}
-					TRACE("hselected %08X\r\n", lParam);
-					HTREEITEM hTemp = m_Tree.InsertItem(pInfo->szFileName, (HTREEITEM)lParam, TVI_LAST);
+					TRACE("hselected %08X %08X\r\n", lParam, m_Tree.GetSelectedItem());
+					HTREEITEM hTemp = m_Tree.InsertItem(pInfo->szFileName, (HTREEITEM)lParam);
 					m_Tree.InsertItem("", hTemp, TVI_LAST);
+					m_Tree.Expand((HTREEITEM)lParam, TVE_EXPAND);
 				}
 				else
 				{
@@ -655,15 +665,9 @@ LRESULT CRemoteClientDlg::OnSendPackAck(WPARAM wParam, LPARAM lParam)
 				TRACE("unknow data recevied! %d\r\n", head.sCmd);
 				break;
 			}
+			
 		}
 	}
-	else if (lParam < 0)
-	{
-
-	}
-	else if (lParam > 0)
-	{
-
-	}
+	
 	return 0;
 }

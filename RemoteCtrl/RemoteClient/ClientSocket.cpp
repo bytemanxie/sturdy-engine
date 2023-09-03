@@ -49,14 +49,6 @@ bool CClientSocket::InitSocket()
 
 bool CClientSocket::SendPacket(HWND hWnd, const CPacket& pack, bool isAutoClosed, WPARAM wParam)
 {
-	if (m_hThread == INVALID_HANDLE_VALUE)
-	{
-		m_hThread = (HANDLE)_beginthreadex(NULL, 0, &CClientSocket::threadEntry,
-			this, 0, &m_threadID);
-		
-	}
-	/*m_hThread = (HANDLE)_beginthreadex(NULL, 0, &CClientSocket::threadEntry,
-		this, 0, &m_threadID);*/
 	UINT nMode = isAutoClosed ? CSM_AUTOCLOSE : 0;
 	std::string strOut;
 	pack.Data(strOut);
@@ -64,8 +56,10 @@ bool CClientSocket::SendPacket(HWND hWnd, const CPacket& pack, bool isAutoClosed
 
 	size_t nTemp = strOut.size();
 	CPacket current((BYTE*)pData->strData.c_str(), nTemp);
-	return PostThreadMessage(m_threadID, WM_SEND_PACK, 
+	bool ret = PostThreadMessage(m_threadID, WM_SEND_PACK, 
 		(WPARAM)pData, (LPARAM)hWnd);
+	if (ret == false) delete pData;
+	return ret;
 }
 
 //bool CClientSocket::SendPacket(const CPacket& pack,
@@ -127,6 +121,7 @@ CClientSocket::CClientSocket(const CClientSocket& ss)
 		m_mapFunc.insert(std::pair<UINT, MSGFUNC>(it->first, it->second));
 	}
 }
+
 CClientSocket::CClientSocket() :
 	m_nIp(INADDR_ANY), m_nPort(0), m_sock(INVALID_SOCKET), m_bAutoClose(true),
 	m_hThread(INVALID_HANDLE_VALUE)
@@ -136,8 +131,16 @@ CClientSocket::CClientSocket() :
 		MessageBox(NULL, _T("无法初始化套接字环境, 请检查网络设置！"), _T("初始化错误！"), MB_OK | MB_ICONERROR);//text, caption
 		exit(0);
 	}
+
+	m_eventInvoke = CreateEvent(NULL, TRUE, FALSE, NULL);
 	m_hThread = (HANDLE)_beginthreadex(NULL, 0, &CClientSocket::threadEntry,
 		this, 0, &m_threadID);
+	if (WaitForSingleObject(m_eventInvoke, 100) == WAIT_TIMEOUT)
+	{
+		TRACE("网络消息处理线程启动失败了！ \r\n");
+	}
+	CloseHandle(m_eventInvoke);
+
 	m_buffer.resize(BUFFER_SIZE);
 	memset((char*)m_buffer.data(), 0, BUFFER_SIZE);
 	struct {
@@ -255,11 +258,13 @@ unsigned CClientSocket::threadEntry(void* arg)
 
 void CClientSocket::threadFunc2()
 {
+	SetEvent(m_eventInvoke);
 	MSG msg;
 	while (::GetMessage(&msg, NULL, 0, 0))
 	{
 		TranslateMessage(&msg);
 		DispatchMessage(&msg);
+		TRACE("Get Message: %08X \r\n", msg.message);
 		if (m_mapFunc.find(msg.message) != m_mapFunc.end())
 		{
 			(this->*m_mapFunc[msg.message])(msg.message, msg.wParam, msg.lParam);
@@ -292,13 +297,14 @@ void CClientSocket::SendPack(UINT nMsg, WPARAM wParam, LPARAM lParam)
 			while (m_sock != INVALID_SOCKET)
 			{
 				int length = recv(m_sock, pBuffer + index, BUFFER_SIZE - index, 0);
-				if (length > 0 || index >= 0)
+				if (length > 0 || (index > 0))
 				{
 					index += (size_t)length;
 					size_t nLen = index;
 					CPacket pack((BYTE*)pBuffer, nLen);
 					if (nLen > 0)
 					{
+						TRACE("ack pack %d to hWnd %08X\r\n", pack.sCmd, hWnd);
 						::SendMessage(hWnd, WM_SEND_PACK_ACK, (WPARAM)new CPacket(pack), data.wParam);
 						if (data.nMode & CSM_AUTOCLOSE)
 						{
@@ -312,6 +318,7 @@ void CClientSocket::SendPack(UINT nMsg, WPARAM wParam, LPARAM lParam)
 				}
 				else
 				{
+					TRACE("recv failed! \r\n");
 					CloseSocket();
 					::SendMessage(hWnd, WM_SEND_PACK_ACK, NULL, 1);
 				}
