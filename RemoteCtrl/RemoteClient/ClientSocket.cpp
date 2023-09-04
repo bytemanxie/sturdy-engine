@@ -318,9 +318,13 @@ void CClientSocket::SendPack(UINT nMsg, WPARAM wParam, LPARAM lParam)
 				}
 				else
 				{
-					TRACE("recv failed! \r\n");
+					TRACE("recv failed length %d index %d cmd %d\r\n", 
+						length, index, current.sCmd);
 					CloseSocket();
-					::SendMessage(hWnd, WM_SEND_PACK_ACK, NULL, 1);
+					current.strData.clear();
+					current.nLength = 4;
+					::SendMessage(hWnd, WM_SEND_PACK_ACK, 
+						(WPARAM)new CPacket(current.sCmd, NULL, 0), 1);
 				}
 			}
 

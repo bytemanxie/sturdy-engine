@@ -629,6 +629,7 @@ LRESULT CRemoteClientDlg::OnSendPackAck(WPARAM wParam, LPARAM lParam)
 			case 4:
 			{
 				static LONGLONG length = 0, index = 0;
+				TRACE("length %d index %d\r\n", length, index);
 				if (length == 0)
 				{
 					length = *(long long*)head.strData.c_str();
@@ -652,6 +653,14 @@ LRESULT CRemoteClientDlg::OnSendPackAck(WPARAM wParam, LPARAM lParam)
 					FILE* pFile = (FILE*)lParam;
 					fwrite(head.strData.c_str(), 1, head.strData.size(), pFile);
 					index += head.strData.size();
+					TRACE("index = %d\r\n", index);
+					if (index >= length)
+					{
+						fclose((FILE*)lParam);
+						length = 0;
+						index = 0;
+						CClientController::getInstance()->DownloadEnd();
+					}
 				}
 			}
 				break;

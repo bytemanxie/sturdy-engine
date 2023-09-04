@@ -25,7 +25,7 @@ public:
 	protected:
 	virtual void DoDataExchange(CDataExchange* pDX);	// DDX/DDV support
 public:
-	
+	void LoadFileInfo();
 private:
 	
 	
@@ -35,7 +35,7 @@ private:
 	void threadWatchData();*/
 	//static void threadEntryForDownFile(void* arg);
 	// threadDownFile();
-	void LoadFileInfo();
+	
 	void LoadFileCurrent();
 
 	
