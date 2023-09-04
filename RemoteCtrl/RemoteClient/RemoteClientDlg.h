@@ -35,10 +35,13 @@ private:
 	void threadWatchData();*/
 	//static void threadEntryForDownFile(void* arg);
 	// threadDownFile();
-	
-	void LoadFileCurrent();
+	void DealCommand(WORD nCmd,const std::string& strData, LPARAM lParam);
 
-	
+	void InitUIData();
+	void LoadFileCurrent();
+	void Str2Tree(const std::string& drivers, CTreeCtrl& tree);
+	void UpdataFileInfo(FILEINFO& finfo, HTREEITEM hParent);
+	void UpdataDownloadFile(const std::string&, FILE*);
 	//返回文件绝对路径
 	CString GetPath(HTREEITEM hTree);
 	void DeleteTreeItem(HTREEITEM hTree);

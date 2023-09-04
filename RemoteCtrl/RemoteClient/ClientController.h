@@ -67,8 +67,7 @@ public:
 protected:
 	void threadWatchScreen();
 	static void threadWatchScreen(void* arg);
-	void threadDownloadFile();
-	static void threadDownloadEntry(void* arg);
+	
 	CClientController():
 		m_statusDlg(&m_remoteDlg),
 		m_watchDlg(&m_remoteDlg)

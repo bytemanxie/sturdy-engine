@@ -95,13 +95,6 @@ int CClientController::DownFile(CString strPath)
 		}
 		SendCommandPacket(m_remoteDlg, 4, false,
 			(BYTE*)(LPCSTR)m_strRemote, m_strRemote.GetLength(), (WPARAM)pFile);
-		/*m_hThreadDownload = (HANDLE)_beginthread(CClientController::threadDownloadEntry
-			, 0, this);*/
-
-		/*if (WaitForSingleObject(m_hThreadDownload, 0) != WAIT_TIMEOUT)
-		{
-			return -1;
-		}*/
 
 		m_remoteDlg.BeginWaitCursor();
 		m_statusDlg.m_info.SetWindowText(_T("命令正在执行中！"));
@@ -163,68 +156,6 @@ void CClientController::threadWatchScreen(void* arg)
 	_endthread();
 }
 
-void CClientController::threadDownloadFile()
-{
-	FILE* pFile = fopen(m_strLocal, "wb+");
-	if (pFile == NULL)
-	{
-		AfxMessageBox(_T("本地没有权限保存该文件， 或者无法创建！！！"));
-		m_statusDlg.ShowWindow(SW_HIDE);
-		m_remoteDlg.EndWaitCursor();
-		return;
-	}
-	CClientSocket* pClient = CClientSocket::getInstance();
-	do {
-		int ret = SendCommandPacket(m_remoteDlg, 4, false,
-			(BYTE*)(LPCSTR)m_strRemote, m_strRemote.GetLength(), (WPARAM)pFile);
-
-		if (ret < 0)
-		{
-			AfxMessageBox("执行下载命令失败！！");
-			TRACE("执行下载失败：ret = %d\r\n", ret);
-			break;
-		}
-
-
-		//第一个包返回文件长度
-		long long nLength = *(long long*)pClient->GetPacket().strData.c_str();
-		if (nLength == 0)
-		{
-			AfxMessageBox("文件长度为零或者无法读取文件！！！");
-			break;
-		}
-
-		long long nCount = 0;
-		while (nCount < nLength)
-		{
-			ret = pClient->DealCommand();
-			if (ret < 0)
-			{
-				AfxMessageBox("传输失败！！");
-				TRACE("传输失败：ret = %d\r\n", ret);
-				break;
-			}
-			//const char* buf = pClient->GetPacket().strData.c_str();
-			fwrite(pClient->GetPacket().strData.c_str(), 1,
-				pClient->GetPacket().strData.size(), pFile);
-			nCount += pClient->GetPacket().strData.size();
-		}
-	} while (false);
-
-	fclose(pFile);
-	pClient->CloseSocket();
-	m_statusDlg.ShowWindow(SW_HIDE);
-	m_remoteDlg.EndWaitCursor();
-	m_remoteDlg.MessageBox(_T("下载完成"), _T("完成"));
-	m_remoteDlg.LoadFileInfo();
-}
-
-void CClientController::threadDownloadEntry(void* arg)
-{
-	CClientController* thiz = (CClientController*)arg;
-	thiz->threadDownloadFile();
-	_endthread();
-}
 
 void CClientController::threadFunc()
 {
