@@ -200,7 +200,7 @@ void CRemoteClientDlg::LoadFileInfo()
 	if (hTreeSelected == NULL) return;
 	
 	DeleteTreeItem(hTreeSelected);
-
+	m_List.DeleteAllItems();
 	CString strPath = GetPath(hTreeSelected);
 	TRACE("hTreeSelected %08X\r\n", hTreeSelected);
 	CClientController::getInstance()->SendCommandPacket(GetSafeHwnd(), 2, false,
@@ -299,7 +299,7 @@ void CRemoteClientDlg::UpdataFileInfo(FILEINFO& pInfo, HTREEITEM hParent)
 {
 	TRACE("hasnext %d isdirectory %d %s\r\n",
 		pInfo.HasNext, pInfo.IsDirectory, pInfo.szFileName);
-	//m_List.DeleteAllItems();
+
 	if (pInfo.HasNext == FALSE) return;
 	if (pInfo.IsDirectory)
 	{
@@ -316,7 +316,6 @@ void CRemoteClientDlg::UpdataFileInfo(FILEINFO& pInfo, HTREEITEM hParent)
 	{
 		m_List.InsertItem(0, pInfo.szFileName);
 	}
-
 }
 
 void CRemoteClientDlg::UpdataDownloadFile(const std::string& strData, FILE* pFile)
