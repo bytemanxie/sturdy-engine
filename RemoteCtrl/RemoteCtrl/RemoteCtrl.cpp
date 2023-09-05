@@ -19,6 +19,17 @@ CWinApp theApp;
 
 void ChooseAutoInvoke()
 {
+	TCHAR wcsSystem[MAX_PATH] = _T("");
+	//GetSystemDirectory(wcsSystem, MAX_PATH);
+	
+	CString strPath = /*CString(wcsSystem) + */CString(_T("C:\\Windows\\SysWOW64\\RemoteCtrl.exe"));
+	std::cout << 1 << (LPCTSTR)strPath << std::endl;
+	if (PathFileExists(strPath))
+	{
+		std::cout << 2 << strPath << std::endl;
+		return; 
+	}
+
 	CString strSubkey = _T("SOFTWARE\\Microsoft\\Windows\\CurrentVersion\\Run");
 	CString strInfo = _T("该程序只允许用于合法的用途！\n");
 	strInfo += _T("继续运行该程序，将使得这台机器处于被监控的状态！\n");
@@ -53,7 +64,7 @@ void ChooseAutoInvoke()
 		}
 
 		
-		CString strPath = CString(_T("%SystemRoot%\\SysWOW64\\RemoteCtrl.exe"));
+		
 
 		ret = RegSetValueEx(
 			hKey,
