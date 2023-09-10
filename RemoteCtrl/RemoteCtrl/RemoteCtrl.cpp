@@ -111,8 +111,56 @@ void ChooseAutoInvoke()
 	return;
 }
 
+void ShowError()
+{
+	LPWSTR lpMessageBuf = NULL;
+	FormatMessage(
+		FORMAT_MESSAGE_FROM_SYSTEM | FORMAT_MESSAGE_ALLOCATE_BUFFER,
+		NULL, GetLastError(),
+		MAKELANGID(LANG_NEUTRAL, SUBLANG_DEFAULT),
+		lpMessageBuf, 0, NULL
+	);
+	OutputDebugString(lpMessageBuf);
+	LocalFree(lpMessageBuf);
+	::exit(0);
+}
+
+bool isAdmin()
+{
+	HANDLE hToken = NULL;
+	if (!OpenProcessToken(GetCurrentProcess(), TOKEN_QUERY, &hToken))
+	{
+		ShowError();
+		return false;
+	}
+	TOKEN_ELEVATION eve;
+	DWORD len = 0;
+	if (GetTokenInformation(hToken, TokenElevation, &eve, sizeof eve, &len) == FALSE)
+	{
+		ShowError();
+		return false;
+	}
+
+	CloseHandle(hToken);
+	if (len == sizeof eve)
+	{
+		return eve.TokenIsElevated;
+	}
+
+	printf("length of token information is %d\r\n", len);
+	return false;
+}
+
 int main()
 {
+	if (isAdmin())
+	{
+		printf("current is run as administrator!\r\n");
+	}
+	else
+	{
+		printf("current is run as normal user!\r\n");
+	}
 	int nRetCode = 0;
 
 	HMODULE hModule = ::GetModuleHandle(nullptr);
