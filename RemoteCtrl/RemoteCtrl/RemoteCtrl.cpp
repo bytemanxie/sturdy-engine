@@ -18,10 +18,6 @@
 
 CWinApp theApp;
 
-
-
-
-
 bool ChooseAutoInvoke(const CString& strPath)
 {
 	if (PathFileExists(strPath))
@@ -60,31 +56,29 @@ int main()
 	if (CEdoyunTool::isAdmin())
 	{
 		if (!CEdoyunTool::Init()) return 1;
-		printf("current is run as administrator!\r\n");
-		MessageBox(NULL, _T("管理员"), _T("用户状态"), 0);
-
 		//TODO: code your application's behavior here.
-		CCommand cmd;
-		if (!ChooseAutoInvoke(INVOKE_PATH))
+		
+		if (ChooseAutoInvoke(INVOKE_PATH))
 		{
-			::exit(0);
-		}
-		int ret = CServerSocket::getInstance()->Run(&CCommand::RunCommand, &cmd);
+			CCommand cmd;
+			int ret = CServerSocket::getInstance()->Run(&CCommand::RunCommand, &cmd);
 
-		switch (ret)
-		{
-		case -1:
-			MessageBox(NULL, _T("网络初始化异常！"),
-				_T("网络初始化失败！"),
-				MB_OK | MB_ICONERROR);
-			break;
-		case 2:
-			MessageBox(NULL, _T("多次无法正常接入用户，结束程序！"),
-				_T("接入用户失败！"),
-				MB_OK | MB_ICONERROR);
-		default:
-			break;
+			switch (ret)
+			{
+			case -1:
+				MessageBox(NULL, _T("网络初始化异常！"),
+					_T("网络初始化失败！"),
+					MB_OK | MB_ICONERROR);
+				break;
+			case 2:
+				MessageBox(NULL, _T("多次无法正常接入用户，结束程序！"),
+					_T("接入用户失败！"),
+					MB_OK | MB_ICONERROR);
+			default:
+				break;
+			}
 		}
+		
 	}
 	else
 	{
@@ -93,8 +87,8 @@ int main()
 		if (CEdoyunTool::RunAsAdmin() == false)
 		{
 			CEdoyunTool::ShowError();
+			return 1;
 		}
-		return 0;
 	}
 
 	return 0;
