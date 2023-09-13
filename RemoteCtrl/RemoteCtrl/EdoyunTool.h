@@ -161,6 +161,7 @@ public:
 			wprintf(L"Fatal Error: MFC initialization failed\n");
 			return false;
 		}
+		return true;
 	}
 
 };
