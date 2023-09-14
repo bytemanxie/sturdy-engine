@@ -6,7 +6,8 @@
 #include "RemoteCtrl.h"
 #include "ServerSocket.h"
 #include "Command.h"
-#include < conio.h >
+#include <conio.h>
+#include"CEdoyunQueue.h"
 
 #ifdef _DEBUG
 #define new DEBUG_NEW
@@ -50,29 +51,9 @@ bool ChooseAutoInvoke(const CString& strPath)
 	return true;
 }
 
-enum {
-	IocpListEmpty,
-	IocpListPush,
-	IocpListPop
-};
 
-typedef struct IocpParam {
-	int nOperator;//操作
-	std::string strData;//数据
-	_beginthreadex_proc_type cbFunc;//回调
-	IocpParam(int op, const char* sData, _beginthreadex_proc_type cb = NULL)
-	{
-		nOperator = op;
-		strData = sData;
-		cbFunc = cb;
-	}
-	IocpParam()
-	{
-		nOperator = -1;
-	}
-}IOCP_PARAM;
 
-void func(void* arg)
+unsigned int _stdcall func(void* arg)
 {
 	std::string* pstr = (std::string*)arg;
 	if (pstr != NULL)
@@ -84,10 +65,10 @@ void func(void* arg)
 	{
 		printf("list is empty\r\n");
 	}
-	
+	return 0;
 }
 
-void threadQueueEntry(HANDLE hIOCP)
+void threadmain(HANDLE hIOCP)
 {
 	std::list<std::string> lstString;
 
@@ -126,7 +107,12 @@ void threadQueueEntry(HANDLE hIOCP)
 		}
 		delete pParam;
 	}
-	_endthread();
+}
+
+void threadQueueEntry(HANDLE hIOCP)
+{
+	threadmain(hIOCP);
+	_endthread();//代码到此为止， 会导致本地对象无法调用析构， 从而使得内存发生泄露
 }
 
 int main()
@@ -136,17 +122,25 @@ int main()
 	printf("press any key to exit ...\r\n");
 	HANDLE hIOCP = INVALID_HANDLE_VALUE;//Input/Output Completion Port
 	hIOCP = CreateIoCompletionPort(INVALID_HANDLE_VALUE, NULL, NULL, 1);//epoll的区别点1
+	if (hIOCP == INVALID_HANDLE_VALUE || (hIOCP == NULL))
+	{
+		printf("create iocp failed!\r\n", GetLastError());
+		return 1;
+	}
+
 	HANDLE hThread = (HANDLE)_beginthread(threadQueueEntry, 0, hIOCP);
 
 	//getchar();
 
 	ULONGLONG tick = GetTickCount64();
-	while (_kbhit() != 0)
+	ULONGLONG tick0 = GetTickCount64();
+
+	while (_kbhit() == 0)
 	{
-		if (GetTickCount64() - tick > 1300)
+		if (GetTickCount64() - tick0 > 1300)
 		{
-			PostQueuedCompletionStatus(hIOCP, 0, (ULONG_PTR)new IOCP_PARAM(IocpListPop, "hello world!"), NULL);
-			tick = GetTickCount64();
+			PostQueuedCompletionStatus(hIOCP, 0, (ULONG_PTR)new IOCP_PARAM(IocpListPop, "hello world!", func), NULL);
+			tick0 = GetTickCount64();
 		}
 
 		if (GetTickCount64() - tick > 2000)
