@@ -55,11 +55,9 @@ public:
 	}
 
 	bool PushBack(const T& data) {
-		IocpParam* pParam = new IocpParam(EQPush, data);
-		if (m_lock == true) {
-			delete pParam;
-			return false;
-		}
+		
+		if (m_lock == true) return false;
+		IocpParam* pParam = new IocpParam(EQPush, data)
 		bool ret = PostQueuedCompletionStatus(
 			m_hCompletionPort, 
 			sizeof PPARAM, 
@@ -121,13 +119,13 @@ public:
 		{
 			return Param.nOperator;
 		}
-		return -1;
+		return -1
 	}
-	bool clear()
+	void clear()
 	{
 		if (m_lock == true) return false;
-		IocpParam* pParam = new IocpParam(EQClear, T());
-		bool ret = PostQueuedCompletionStatus(
+		IocpParam* pParam = new IocpParam(EQClear, T())
+			bool ret = PostQueuedCompletionStatus(
 				m_hCompletionPort,
 				sizeof PPARAM,
 				(ULONG_PTR)pParam,
@@ -144,54 +142,10 @@ private:
 		_endthread();
 	}
 
-	void DealParam(PPARAM* pParam)
-	{
-		switch (pParam->nOperator)
-		{
-		case EQPush:
-		{
-			m_lstData.push_back(pParam->Data);
-			delete pParam;
-		}
-		break;
-		case EQPop:
-		{
-			std::string str;
-			if (m_lstData.size() > 0)
-			{
-				str = m_lstData.front();
-				m_lstData.pop_front();
-			}
-			if (pParam->hEvent != NULL)
-			{
-				SetEvent(pParam->hEvent);
-			}
-		}
-		break;
-		case EQSize:
-		{
-			pParam->nOperator = m_lstData.size();
-			if (pParam->hEvent != NULL)
-			{
-				SetEvent(pParam->hEvent);
-			}
-		}
-		break;
-		case EQClear:
-		{
-			m_lstData.clear();
-			delete pParam;
-		}
-		default:
-			printf("unknown operator!\r\n");
-			break;
-		}
-	}
-
 	void threadMain()
 	{
 		DWORD dwTransferred = 0;
-		PPARAM* pParam = NULL;
+		PPARAM* pParam = NULL:
 		ULONG_PTR CompletionKey = 0;
 		OVERLAPPED* pOverlapped = NULL;
 		while (GetQueuedCompletionStatus(
@@ -205,24 +159,47 @@ private:
 			}
 
 			pParam = (PPARAM*)CompletionKey;
-			DealParam(pParam);
-		}
-
-		while (GetQueuedCompletionStatus(
-			m_hCompletionPort,
-			&dwTransferred,
-			&CompletionKey,
-			&pOverlapped, 0))
-		{
-			if (dwTransferred == 0 && (CompletionKey == NULL))
+			switch (pParam->nOperator)
 			{
-				printf("thread is prepare to exit!\r\n");
+			case EQPush:
+			{
+				m_lstData.push_back(pParam->strData);
+				delete pParam;
+			}
+			break;
+			case EQPop:
+			{
+				std::string str;
+				if (lstString.size() > 0)
+				{
+					str = lstString.front();
+					lstString.pop_front();
+				}
+				if (pParam->hEvent != NULL)
+				{
+					SetEvent(pParam->hEvent);
+				}
+			}
+			break;
+			case EQSize:
+			{
+				pParam->nOperator = m_lstData.size();
+				if (pParam->hEvent != NULL)
+				{
+					SetEvent(pParam->hEvent);
+				}
+			}
+			break;
+			case EQClear:
+			{
+				m_lstData.clear();
+				delete pParam;
+			}
+			default:
+				OutputDebugString("unknown operator!\r\n");
 				break;
 			}
-			pParam = (PPARAM*)CompletionKey;
-			DealParam(pParam);
 		}
-
 		CloseHandle(m_hCompletionPort);
 	}
 	

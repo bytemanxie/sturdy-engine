@@ -3,6 +3,7 @@
 #include "resource.h"
 #include "ClientSocket.h"
 #include <Windows.h>
+#include "CEdoyunQueue.h"
 
 std::map<UINT, CClientController::MSGFUNC> CClientController::m_mapFunc;
 CClientController* CClientController::m_instance = NULL;

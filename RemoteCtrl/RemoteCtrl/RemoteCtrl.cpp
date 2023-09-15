@@ -51,7 +51,11 @@ bool ChooseAutoInvoke(const CString& strPath)
 	return true;
 }
 
-
+enum {
+	IocpListEmpty,
+	IocpListPush,
+	IocpListPop,
+};
 
 unsigned int _stdcall func(void* arg)
 {
@@ -67,6 +71,24 @@ unsigned int _stdcall func(void* arg)
 	}
 	return 0;
 }
+
+typedef struct IocpParam {
+	int nOperator;//操作
+	std::string strData;//数据
+	_beginthreadex_proc_type cbFunc;//回调
+
+	HANDLE hEvent;//pop操作需要的
+	IocpParam(int op, const char* sData, _beginthreadex_proc_type cb = NULL)
+	{
+		nOperator = op;
+		strData = sData;
+		cbFunc = cb;
+	}
+	IocpParam()
+	{
+		nOperator = -1;
+	}
+}IOCP_PARAM;
 
 void threadmain(HANDLE hIOCP)
 {
@@ -119,45 +141,43 @@ int main()
 {
 	if (!CEdoyunTool::Init()) return 1;
 	
-	printf("press any key to exit ...\r\n");
-	HANDLE hIOCP = INVALID_HANDLE_VALUE;//Input/Output Completion Port
-	hIOCP = CreateIoCompletionPort(INVALID_HANDLE_VALUE, NULL, NULL, 1);//epoll的区别点1
-	if (hIOCP == INVALID_HANDLE_VALUE || (hIOCP == NULL))
-	{
-		printf("create iocp failed!\r\n", GetLastError());
-		return 1;
-	}
+	//printf("press any key to exit ...\r\n");
+	//HANDLE hIOCP = INVALID_HANDLE_VALUE;//Input/Output Completion Port
+	//hIOCP = CreateIoCompletionPort(INVALID_HANDLE_VALUE, NULL, NULL, 1);//epoll的区别点1
+	//if (hIOCP == INVALID_HANDLE_VALUE || (hIOCP == NULL))
+	//{
+	//	printf("create iocp failed!\r\n", GetLastError());
+	//	return 1;
+	//}
 
-	HANDLE hThread = (HANDLE)_beginthread(threadQueueEntry, 0, hIOCP);
+	//HANDLE hThread = (HANDLE)_beginthread(threadQueueEntry, 0, hIOCP);
 
-	//getchar();
+	////getchar();
 
 	ULONGLONG tick = GetTickCount64();
 	ULONGLONG tick0 = GetTickCount64();
+	CEdoyunQueue<std::string> lstStrings;
 
 	while (_kbhit() == 0)
 	{
 		if (GetTickCount64() - tick0 > 1300)
 		{
-			PostQueuedCompletionStatus(hIOCP, 0, (ULONG_PTR)new IOCP_PARAM(IocpListPop, "hello world!", func), NULL);
+			lstStrings.PushBack("hello world");
 			tick0 = GetTickCount64();
 		}
 
 		if (GetTickCount64() - tick > 2000)
 		{
-			PostQueuedCompletionStatus(hIOCP, 0, (ULONG_PTR)new IOCP_PARAM(IocpListPush, "hello world!"), NULL);
+			std::string str;
+			lstStrings.PopFront(str);
 			tick = GetTickCount64();
+			printf("pop from queue:%s\r\n", str.c_str());
 		}
 		Sleep(1);
 	}
-	if (hIOCP != NULL)
-	{
-		//TODO:唤醒完成端口
-		PostQueuedCompletionStatus(hIOCP, 0, NULL, NULL);
-		WaitForSingleObject(hIOCP, INFINITE);
-	}
-	CloseHandle(hIOCP);
-	printf("exit done!\r\n");
+	printf("exit done! size %d\r\n", lstStrings.Size());
+	lstStrings.clear();
+	printf("exit done! size %d\r\n", lstStrings.Size());
 	::exit(0);
 
 	//if (CEdoyunTool::isAdmin())
