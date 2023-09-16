@@ -137,86 +137,42 @@ void threadQueueEntry(HANDLE hIOCP)
 	_endthread();//代码到此为止， 会导致本地对象无法调用析构， 从而使得内存发生泄露
 }
 
-int main()
+void test()
 {
-	if (!CEdoyunTool::Init()) return 1;
-	
-	//printf("press any key to exit ...\r\n");
-	//HANDLE hIOCP = INVALID_HANDLE_VALUE;//Input/Output Completion Port
-	//hIOCP = CreateIoCompletionPort(INVALID_HANDLE_VALUE, NULL, NULL, 1);//epoll的区别点1
-	//if (hIOCP == INVALID_HANDLE_VALUE || (hIOCP == NULL))
-	//{
-	//	printf("create iocp failed!\r\n", GetLastError());
-	//	return 1;
-	//}
-
-	//HANDLE hThread = (HANDLE)_beginthread(threadQueueEntry, 0, hIOCP);
-
-	////getchar();
-
+	printf("press any key to exit ...\r\n");
 	ULONGLONG tick = GetTickCount64();
-	ULONGLONG tick0 = GetTickCount64();
+	ULONGLONG tick0 = GetTickCount64(), total = GetTickCount64();
 	CEdoyunQueue<std::string> lstStrings;
 
-	while (_kbhit() == 0)
+	while (GetTickCount64() - total <= 1000)
 	{
-		if (GetTickCount64() - tick0 > 1300)
+		if (GetTickCount64() - tick0 > 13)
 		{
 			lstStrings.PushBack("hello world");
 			tick0 = GetTickCount64();
 		}
 
-		if (GetTickCount64() - tick > 2000)
+		if (GetTickCount64() - tick > 20)
 		{
 			std::string str;
 			lstStrings.PopFront(str);
 			tick = GetTickCount64();
 			printf("pop from queue:%s\r\n", str.c_str());
 		}
-		Sleep(1);
+		//Sleep(1);
 	}
 	printf("exit done! size %d\r\n", lstStrings.Size());
-	lstStrings.clear();
+	lstStrings.Clear();
 	printf("exit done! size %d\r\n", lstStrings.Size());
-	::exit(0);
+}
 
-	//if (CEdoyunTool::isAdmin())
-	//{
-	//	if (!CEdoyunTool::Init()) return 1;
-	//	//TODO: code your application's behavior here.
-	//	
-	//	if (ChooseAutoInvoke(INVOKE_PATH))
-	//	{
-	//		CCommand cmd;
-	//		int ret = CServerSocket::getInstance()->Run(&CCommand::RunCommand, &cmd);
-
-	//		switch (ret)
-	//		{
-	//		case -1:
-	//			MessageBox(NULL, _T("网络初始化异常！"),
-	//				_T("网络初始化失败！"),
-	//				MB_OK | MB_ICONERROR);
-	//			break;
-	//		case 2:
-	//			MessageBox(NULL, _T("多次无法正常接入用户，结束程序！"),
-	//				_T("接入用户失败！"),
-	//				MB_OK | MB_ICONERROR);
-	//		default:
-	//			break;
-	//		}
-	//	}
-	//	
-	//}
-	//else
-	//{
-	//	printf("current is run as normal user!\r\n");
-
-	//	if (CEdoyunTool::RunAsAdmin() == false)
-	//	{
-	//		CEdoyunTool::ShowError();
-	//		return 1;
-	//	}
-	//}
-
+int main()
+{
+	if (!CEdoyunTool::Init()) return 1;
+	for (int i = 0; i < 10; ++i)
+	{
+		test();
+	}
+	
 	return 0;
 }

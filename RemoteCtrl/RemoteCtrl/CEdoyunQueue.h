@@ -41,17 +41,24 @@ public:
 		{
 			m_hThread = (HANDLE)_beginthread(
 				&CEdoyunQueue<T>::threadEntry,
-				0, m_hCompletionPort);
+				0, this
+			);
 		}
 	}
 
 	~CEdoyunQueue() {
+		if (m_lock) return;
 		m_lock = true;
-		HANDLE hTemp = m_hCompletionPort;
+		
 		PostQueuedCompletionStatus(m_hCompletionPort, 0, NULL, NULL);
 		WaitForSingleObject(m_hThread, INFINITE);
-		m_hCompletionPort = NULL;
-		CloseHandle(hTemp);
+		if (m_hCompletionPort != NULL)
+		{
+			HANDLE hTemp = m_hCompletionPort;
+			m_hCompletionPort = NULL;
+			CloseHandle(hTemp);
+		}
+		m_lstData.clear();
 	}
 
 	bool PushBack(const T& data) {
@@ -78,16 +85,19 @@ public:
 			if (hEvent) CloseHandle(hEvent);
 			return -1;
 		}
+
 		bool ret = PostQueuedCompletionStatus(
 				m_hCompletionPort,
 				sizeof PPARAM,
 				(ULONG_PTR)&pParam,
 				NULL
 			);
+
 		if (ret == false) {
 			CloseHandle(hEvent);
 			return false;
 		}
+
 		ret = WaitForSingleObject(hEvent, INFINITE) == WAIT_OBJECT_0;
 		if (ret)
 		{
@@ -123,7 +133,8 @@ public:
 		}
 		return -1;
 	}
-	bool clear()
+
+	bool Clear()
 	{
 		if (m_lock == true) return false;
 		IocpParam* pParam = new IocpParam(EQClear, T());
@@ -134,6 +145,7 @@ public:
 				NULL
 			);
 		if (ret == false) delete pParam;
+		//printf("Clear %08p\r\n", (void*)pParam);
 		return ret;
 	}
 	
@@ -152,14 +164,14 @@ private:
 		{
 			m_lstData.push_back(pParam->Data);
 			delete pParam;
+			//printf("delete %08p\r\n", (void*)pParam);
 		}
 		break;
 		case EQPop:
 		{
-			std::string str;
 			if (m_lstData.size() > 0)
 			{
-				str = m_lstData.front();
+				pParam->Data = m_lstData.front();
 				m_lstData.pop_front();
 			}
 			if (pParam->hEvent != NULL)
@@ -181,6 +193,7 @@ private:
 		{
 			m_lstData.clear();
 			delete pParam;
+			//printf("delete %08p\r\n", (void*)pParam);
 		}
 		default:
 			printf("unknown operator!\r\n");
@@ -222,8 +235,9 @@ private:
 			pParam = (PPARAM*)CompletionKey;
 			DealParam(pParam);
 		}
-
-		CloseHandle(m_hCompletionPort);
+		HANDLE hTemp = m_hCompletionPort;
+		m_hCompletionPort = NULL;
+		CloseHandle(hTemp);
 	}
 	
 private:
