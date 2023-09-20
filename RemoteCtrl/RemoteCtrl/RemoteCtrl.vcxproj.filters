@@ -48,6 +48,12 @@
     <ClInclude Include="CEdoyunQueue.h">
       <Filter>Header Files</Filter>
     </ClInclude>
+    <ClInclude Include="EdoyunThread.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="EdoyunServer.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="RemoteCtrl.cpp">
@@ -66,6 +72,12 @@
       <Filter>Source Files</Filter>
     </ClCompile>
     <ClCompile Include="Command.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="EdoyunThread.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="EdoyunServer.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
   </ItemGroup>

@@ -78,7 +78,7 @@
     <ClCompile>
       <WarningLevel>Level3</WarningLevel>
       <SDLCheck>true</SDLCheck>
-      <PreprocessorDefinitions>_CRT_SECURE_NO_WARNINGS;WIN32;_DEBUG;_CONSOLE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <PreprocessorDefinitions>_CRT_SECURE_NO_WARNINGS;WIN32;_DEBUG;_CONSOLE;_WINSOCK_DEPRECATED_NO_WARNINGS;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <ConformanceMode>true</ConformanceMode>
       <PrecompiledHeader>Use</PrecompiledHeader>
       <PrecompiledHeaderFile>pch.h</PrecompiledHeaderFile>
@@ -143,6 +143,8 @@
   <ItemGroup>
     <ClInclude Include="CEdoyunQueue.h" />
     <ClInclude Include="Command.h" />
+    <ClInclude Include="EdoyunServer.h" />
+    <ClInclude Include="EdoyunThread.h" />
     <ClInclude Include="EdoyunTool.h" />
     <ClInclude Include="LockInfoDialog.h" />
     <ClInclude Include="Packet.h" />
@@ -155,6 +157,8 @@
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="Command.cpp" />
+    <ClCompile Include="EdoyunServer.cpp" />
+    <ClCompile Include="EdoyunThread.cpp" />
     <ClCompile Include="EdoyunTool.cpp" />
     <ClCompile Include="LockInfoDialog.cpp" />
     <ClCompile Include="ServerSocket.cpp" />
