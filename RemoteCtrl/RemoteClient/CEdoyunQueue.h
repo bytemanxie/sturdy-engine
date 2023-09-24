@@ -135,21 +135,22 @@ public:
 		return ret;
 	}
 	
-private:
+protected:
+
 	static void threadEntry(void* arg) {
 		CEdoyunQueue<T>* thiz = (CEdoyunQueue<T>*) arg;
 		thiz->threadMain();
 		_endthread();
 	}
 
-	void threadMain()
+	virtual void threadMain()
 	{
 		DWORD dwTransferred = 0;
 		PPARAM* pParam = NULL:
 		ULONG_PTR CompletionKey = 0;
 		OVERLAPPED* pOverlapped = NULL;
 		while (GetQueuedCompletionStatus(
-			m_hCompletionPort, &dwTransferred, 
+			m_hCompletionPort, &dwTransferred,
 			&CompletionKey, &pOverlapped, INFINITE))
 		{
 			if (dwTransferred == 0 && (CompletionKey == NULL))
@@ -159,51 +160,29 @@ private:
 			}
 
 			pParam = (PPARAM*)CompletionKey;
-			switch (pParam->nOperator)
+			DealParam(pParam);
+		}
+
+		while (GetQueuedCompletionStatus(
+			m_hCompletionPort, &dwTransferred,
+			&CompletionKey, &pOverlapped, INFINITE))
+		{
+			if (dwTransferred == 0 && (CompletionKey == NULL))
 			{
-			case EQPush:
-			{
-				m_lstData.push_back(pParam->strData);
-				delete pParam;
-			}
-			break;
-			case EQPop:
-			{
-				std::string str;
-				if (lstString.size() > 0)
-				{
-					str = lstString.front();
-					lstString.pop_front();
-				}
-				if (pParam->hEvent != NULL)
-				{
-					SetEvent(pParam->hEvent);
-				}
-			}
-			break;
-			case EQSize:
-			{
-				pParam->nOperator = m_lstData.size();
-				if (pParam->hEvent != NULL)
-				{
-					SetEvent(pParam->hEvent);
-				}
-			}
-			break;
-			case EQClear:
-			{
-				m_lstData.clear();
-				delete pParam;
-			}
-			default:
-				OutputDebugString("unknown operator!\r\n");
+				printf("thread is prepare to exit!\r\n");
 				break;
 			}
+
+			pParam = (PPARAM*)CompletionKey;
+			DealParam(pParam);
 		}
-		CloseHandle(m_hCompletionPort);
+		HANDLE hTemp = m_hCompletionPort;
+		m_hCompletionPort = NULL;
+		CloseHandle(hTemp);
 	}
 	
-private:
+protected:
+
 	std::list<T> m_lstData;
 	HANDLE m_hCompletionPort;
 	HANDLE m_hThread;
@@ -211,3 +190,59 @@ private:
 
 };
 
+class ThreadFuncBase;
+typedef int (ThreadFuncBase::* FUNCTYPE)();
+
+template<class T>
+class EdoyunSendQueue :public CEdoyunQueue<T>
+{
+public:
+	EdoyunSendQueue(ThreadFuncBase* obj, FUNCTYPE callback):
+		CEdoyunQueue<T>(), m_base(obj), m_callback(callback)
+	{
+
+	}
+
+protected:
+	virtual void threadMain()
+	{
+		DWORD dwTransferred = 0;
+		PPARAM* pParam = NULL:
+		ULONG_PTR CompletionKey = 0;
+		OVERLAPPED* pOverlapped = NULL;
+		while (GetQueuedCompletionStatus(
+			m_hCompletionPort, &dwTransferred,
+			&CompletionKey, &pOverlapped, INFINITE))
+		{
+			if (dwTransferred == 0 && (CompletionKey == NULL))
+			{
+				printf("thread is prepare to exit!\r\n");
+				break;
+			}
+
+			pParam = (PPARAM*)CompletionKey;
+			DealParam(pParam);
+		}
+
+		while (GetQueuedCompletionStatus(
+			m_hCompletionPort, &dwTransferred,
+			&CompletionKey, &pOverlapped, INFINITE))
+		{
+			if (dwTransferred == 0 && (CompletionKey == NULL))
+			{
+				printf("thread is prepare to exit!\r\n");
+				break;
+			}
+
+			pParam = (PPARAM*)CompletionKey;
+			DealParam(pParam);
+		}
+		HANDLE hTemp = m_hCompletionPort;
+		m_hCompletionPort = NULL;
+		CloseHandle(hTemp);
+	}
+
+private:
+	ThreadFuncBase* m_base;
+	FUNCTYPE m_callback;
+};
