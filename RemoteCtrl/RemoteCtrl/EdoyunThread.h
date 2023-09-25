@@ -110,7 +110,9 @@ private:
 					OutputDebugString(str);
 				}
 				if (ret < 0) {
+					::ThreadWorker* pWorker = m_worker.load();
 					m_worker.store(NULL);
+					delete pWorker;
 				}
 			}
 			else {

@@ -22,9 +22,11 @@ int AcceptOverlapped<op>::AcceptWorker() {
 			(sockaddr**)&pLocalAddr, &lLength,//本地地址
 			(sockaddr**)&pRemoteAddr, &rLength//远程地址
 		);
+
 		memcpy(m_client->GetLocalAddr(), pLocalAddr, sizeof(sockaddr_in));
 		memcpy(m_client->GetRemoteAddr(), pRemoteAddr, sizeof(sockaddr_in));
 		m_server->BindNewSocket(*m_client, (ULONG_PTR)m_client);
+
 		int ret = WSARecv((SOCKET)*m_client, m_client->RecvWSABuffer(), 1, *m_client, &m_client->flags(), m_client->RecvOverlapped(), NULL);
 		if (ret == SOCKET_ERROR && (WSAGetLastError() != WSA_IO_PENDING)) {
 			//TODO:报错
@@ -108,7 +110,7 @@ LPOVERLAPPED EdoyunClient::SendOverlapped()
 int EdoyunClient::Recv()
 {
 	int ret = recv(m_sock, m_buffer.data() + m_used, m_buffer.size() - m_used, 0);
-	if (ret <= 0)return -1;
+	if (ret <= 0) return -1;
 	m_used += (size_t)ret;
 	//TODO:解析数据
 	CEdoyunTool::Dump((BYTE*)m_buffer.data(), ret);
@@ -148,6 +150,7 @@ EdoyunServer::~EdoyunServer()
 	m_client.clear();
 	CloseHandle(m_hIOCP);
 	m_pool.Stop();
+	WSACleanup();
 }
 
 bool EdoyunServer::StartService()
@@ -179,9 +182,44 @@ bool EdoyunServer::StartService()
 	return true;
 }
 
+bool EdoyunServer::NewAccept()
+{
+	//PCLIENT pClient(new EdoyunClient());
+	EdoyunClient* pClient = new EdoyunClient();
+	pClient->SetOverlapped(pClient);
+	m_client.insert(std::pair<SOCKET, EdoyunClient*>(*pClient, pClient));
+	if (!AcceptEx(m_sock,
+		*pClient,
+		*pClient,
+		0,
+		sizeof(sockaddr_in) + 16, sizeof(sockaddr_in) + 16,
+		*pClient, *pClient))
+	{
+		if (WSAGetLastError() != ERROR_SUCCESS && (WSAGetLastError() != WSA_IO_PENDING)) {
+			//TRACE("连接失败：%d %s\r\n", WSAGetLastError(), CEdoyunTool::GetErrInfo(WSAGetLastError()).c_str());
+			closesocket(m_sock);
+			m_sock = INVALID_SOCKET;
+			m_hIOCP = INVALID_HANDLE_VALUE;
+			return false;
+		}
+	}
+	return true;
+}
+
 void EdoyunServer::BindNewSocket(SOCKET s, ULONG_PTR nKey)
 {
 	CreateIoCompletionPort((HANDLE)s, m_hIOCP, nKey, 0);
+}
+
+void EdoyunServer::CreateSocket()
+{
+	WSADATA data;
+	if (WSAStartup(MAKEWORD(2, 2), &data) != 0) {
+		return;
+	}
+	m_sock = WSASocket(PF_INET, SOCK_STREAM, 0, NULL, 0, WSA_FLAG_OVERLAPPED);
+	int opt = 1;
+	setsockopt(m_sock, SOL_SOCKET, SO_REUSEADDR, (const char*)&opt, sizeof(opt));
 }
 
 int EdoyunServer::threadIocp()
