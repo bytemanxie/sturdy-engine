@@ -54,12 +54,15 @@ public:
 	operator LPDWORD() {
 		return &m_received;
 	}
+
 	LPWSABUF RecvWSABuffer();
 	LPOVERLAPPED RecvOverlapped();
 	LPWSABUF SendWSABuffer();
+
 	LPOVERLAPPED SendOverlapped();
 	DWORD& flags() { return m_flags; }
 	sockaddr_in* GetLocalAddr() { return &m_laddr; }
+
 	sockaddr_in* GetRemoteAddr() { return &m_raddr; }
 	size_t GetBufferSize()const { return m_buffer.size(); }
 	int Recv();

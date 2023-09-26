@@ -31,6 +31,7 @@ public:
 		}
 		return -1;
 	}
+
 	bool IsValid() const {
 		return (thiz != NULL) && (func != NULL);
 	}
@@ -94,22 +95,30 @@ public:
 		if (m_worker == NULL)return true;
 		return !m_worker.load()->IsValid();
 	}
+
 private:
+
 	void ThreadWorker() {
 		while (m_bStatus) {
-			if (m_worker == NULL) {
+			if (m_worker == NULL) 
+			{
 				Sleep(1);
 				continue;
 			}
+
 			::ThreadWorker worker = *m_worker.load();
-			if (worker.IsValid()) {
+			if (worker.IsValid()) 
+			{
 				int ret = worker();
-				if (ret != 0) {
+				if (ret != 0) 
+				{
 					CString str;
 					str.Format(_T("thread found warning code %d\r\n"), ret);
 					OutputDebugString(str);
 				}
-				if (ret < 0) {
+
+				if (ret < 0) 
+				{
 					::ThreadWorker* pWorker = m_worker.load();
 					m_worker.store(NULL);
 					delete pWorker;
@@ -120,6 +129,7 @@ private:
 			}
 		}
 	}
+
 	static void ThreadEntry(void* arg) {
 		EdoyunThread* thiz = (EdoyunThread*)arg;
 		if (thiz) {
@@ -127,6 +137,7 @@ private:
 		}
 		_endthread();
 	}
+
 private:
 	HANDLE m_hThread;
 	bool m_bStatus;//false 表示线程将要关闭  true 表示线程正在运行
