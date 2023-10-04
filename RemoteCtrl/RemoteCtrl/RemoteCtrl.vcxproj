@@ -146,6 +146,8 @@
     <ClInclude Include="EdoyunServer.h" />
     <ClInclude Include="EdoyunThread.h" />
     <ClInclude Include="EdoyunTool.h" />
+    <ClInclude Include="ENetwork.h" />
+    <ClInclude Include="ESocket.h" />
     <ClInclude Include="LockInfoDialog.h" />
     <ClInclude Include="Packet.h" />
     <ClInclude Include="ServerSocket.h" />
@@ -160,6 +162,7 @@
     <ClCompile Include="EdoyunServer.cpp" />
     <ClCompile Include="EdoyunThread.cpp" />
     <ClCompile Include="EdoyunTool.cpp" />
+    <ClCompile Include="ENetwork.cpp" />
     <ClCompile Include="LockInfoDialog.cpp" />
     <ClCompile Include="ServerSocket.cpp" />
     <ClCompile Include="pch.cpp">
